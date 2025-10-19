@@ -1,7 +1,5 @@
 .page {
-  --gray-rgb: 0, 0, 0;
-  --gray-alpha-200: rgba(var(--gray-rgb), 0.08);
-  --gray-alpha-100: rgba(var(--gray-rgb), 0.05);
+  background-color: #000080;
 
   --button-primary-hover: #383838;
   --button-secondary-hover: #f2f2f2;
@@ -31,7 +29,15 @@
   display: flex;
   flex-direction: column;
   gap: 32px;
+
+  justify-content: center; /* vertical alignment */
+  align-items: center;     /* horizontal alignment */
+
   grid-row-start: 2;
+}
+
+.formContainer {
+  align-self: center;     /* centered */
 }
 
 .main ol {
