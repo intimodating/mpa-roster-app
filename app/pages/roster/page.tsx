@@ -1,6 +1,6 @@
 // app/pages/roster/page.tsx
 "use client";
-import React, { useState, useEffect, useMemo } from 'react';
+import React, { useState, useEffect, useMemo, useCallback } from 'react';
 import { useRouter } from 'next/navigation';
 // Ensure this import path is correct for your project structure
 import ShiftEditorModal from './ShiftEditorModal'; 
@@ -48,11 +48,12 @@ export default function RosterPage() {
   }, [router]);
 
   // --- FETCH MONTH DATA EFFECT ---
-  useEffect(() => {
-    // Only fetch if user data is loaded
-    if (!user) return; 
+  // --- DATA FETCH FUNCTION (NEW STANDALONE) ---
+  // Use useCallback to memoize the function, preventing infinite loops in useEffect
+  const fetchRosterData = useCallback(async () => {
+      // Only fetch if user data is loaded
+      if (!user) return; 
 
-    const fetchMonthData = async () => {
       // 1. Calculate the start and end of the relevant calendar range
       const year = currentDate.getFullYear();
       const month = currentDate.getMonth();
@@ -75,26 +76,27 @@ export default function RosterPage() {
 
       setIsLoading(true);
       try {
-        const res = await fetch(`/api/roster/fetch-month?startDate=${startDateStr}&endDate=${endDateStr}`);
-        const result = await res.json();
+          const res = await fetch(`/api/roster/fetch-month?startDate=${startDateStr}&endDate=${endDateStr}`);
+          const result = await res.json();
 
-        if (result.success) {
-          // Update the rosterData with the fetched map
-          setRosterData(result.data);
-        } else {
-          console.error("Month Fetch Failed:", result.message);
-        }
+          if (result.success) {
+              // Update the rosterData with the fetched map (the clean data)
+              setRosterData(result.data);
+          } else {
+              console.error("Month Fetch Failed:", result.message);
+          }
       } catch (error) {
-        console.error("Error during month fetch:", error);
+          console.error("Error during month fetch:", error);
       } finally {
-        setIsLoading(false);
+          setIsLoading(false);
       }
-    };
+  }, [currentDate, user]); // Dependencies ensure the function is only recreated when these values change
 
-    fetchMonthData();
 
-  }, [currentDate, user]); // Re-run when month changes or user loads
-
+  // --- FETCH MONTH DATA EFFECT (Now calls the new function) ---
+  useEffect(() => {
+      fetchRosterData();
+  }, [fetchRosterData]); // Depend on the memoized function
   // --- HANDLERS ---
   
   const changeMonth = (delta: number) => {
@@ -116,13 +118,19 @@ export default function RosterPage() {
     const existingData = rosterData[dateKey];
     
     // Prepare the data structure for the modal (empty arrays if no shifts found)
-    const dataForModal: ShiftData = existingData || {
-        date: dateKey, 
-        dayShiftEmployees: [], 
-        nightShiftEmployees: []
-    };
+    const baseData = existingData 
+        ? { 
+            date: dateKey, // <-- Add the key as the date value
+            dayShiftEmployees: existingData.dayShiftEmployees, 
+            nightShiftEmployees: existingData.nightShiftEmployees 
+          }
+        : { 
+            date: dateKey, 
+            dayShiftEmployees: [], 
+            nightShiftEmployees: [] 
+          };
 
-    setSelectedShiftData(dataForModal);
+    setSelectedShiftData(baseData as ShiftData);
     setIsModalOpen(true);
   };
 
@@ -130,6 +138,9 @@ export default function RosterPage() {
    * Saves changes via the API and updates local state upon success.
    */
   const handleSaveShifts = async (updatedData: ShiftData) => {
+    // 🛑 DEBUGGING STEP: Check the object right before it is sent!
+    console.log("Payload being sent to API:", updatedData); 
+    console.log("Date value in payload:", updatedData.date); // Should show YYYY-MM-DD
     setIsLoading(true);
     try {
       // Call the update API route
