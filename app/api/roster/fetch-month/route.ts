@@ -36,14 +36,14 @@ export async function GET(req: Request) {
         const assignments = await Roster.find(dateFilter).select('user_id shift_type date -_id');
         
         // 2. Reformat the raw assignments into the RosterMap structure { 'YYYY-MM-DD': { ... } }
-        const rosterMap: Record<string, { dayShiftEmployees: string[], nightShiftEmployees: string[] }> = {};
+        const rosterMap: Record<string, { date: string, dayShiftEmployees: string[], nightShiftEmployees: string[] }> = {};
 
         assignments.forEach(assignment => {
             // Convert the stored UTC Date object back to the 'YYYY-MM-DD' string key (UTC date part)
             const dateKey = assignment.date.toISOString().split('T')[0];
             
             if (!rosterMap[dateKey]) {
-                rosterMap[dateKey] = { dayShiftEmployees: [], nightShiftEmployees: [] };
+                rosterMap[dateKey] = { date: dateKey, dayShiftEmployees: [], nightShiftEmployees: [] };
             }
 
             if (assignment.shift_type === 'Day Shift') {

@@ -3,7 +3,8 @@
 import React, { useState, useEffect, useMemo } from 'react';
 import { useRouter } from 'next/navigation';
 // Ensure this import path is correct for your project structure
-import ShiftEditorModal from './ShiftEditorModal'; 
+import ShiftEditorModal from './ShiftEditorModal';
+import GenerateRosterModal from './GenerateRosterModal';
 import Link from 'next/link';
 
 // --- INTERFACES ---
@@ -35,6 +36,7 @@ export default function RosterPage() {
   // Modal State
   const [isModalOpen, setIsModalOpen] = useState(false);
   const [selectedShiftData, setSelectedShiftData] = useState<ShiftData | null>(null);
+  const [isGenerateRosterModalOpen, setIsGenerateRosterModalOpen] = useState(false);
 
   // --- AUTHENTICATION CHECK ---
   useEffect(() => {
@@ -116,10 +118,10 @@ export default function RosterPage() {
     const existingData = rosterData[dateKey];
     
     // Prepare the data structure for the modal (empty arrays if no shifts found)
-    const dataForModal: ShiftData = existingData || {
+    const dataForModal: ShiftData = {
         date: dateKey, 
-        dayShiftEmployees: [], 
-        nightShiftEmployees: []
+        dayShiftEmployees: existingData?.dayShiftEmployees || [], 
+        nightShiftEmployees: existingData?.nightShiftEmployees || []
     };
 
     setSelectedShiftData(dataForModal);
@@ -150,13 +152,55 @@ export default function RosterPage() {
       // This is crucial for instantly reflecting changes on the calendar grid
       setRosterData(prev => ({ ...prev, [updatedData.date]: updatedData }));
       
-      alert(`Roster saved successfully. ${data.count} shifts assigned.`);
       setIsModalOpen(false);
       
     } catch (error) {
         console.error("API Call Error:", error);
         alert("An error occurred while saving the roster.");
     } finally {
+      setIsLoading(false);
+    }
+  };
+
+  const handleApproveRoster = async (roster: Record<string, { dayShift: string[], nightShift: string[] }>) => {
+    setIsLoading(true);
+    try {
+      console.log("Roster object being sent to approve API:", roster);
+
+      const res = await fetch('/api/roster/approve', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ roster }),
+      });
+
+      const data = await res.json();
+
+      if (data.logs) {
+        console.log("Approve API logs:", data.logs);
+      }
+
+      if (data.success) {
+        alert('Roster approved and saved successfully!');
+        
+        const newRosterData: RosterMap = {};
+        for (const date in roster) {
+          newRosterData[date] = {
+            date,
+            dayShiftEmployees: roster[date].dayShift,
+            nightShiftEmployees: roster[date].nightShift,
+          };
+        }
+        
+        console.log("New roster data for local state:", newRosterData);
+        setRosterData(prev => ({ ...prev, ...newRosterData }));
+      } else {
+        alert(`Failed to approve roster: ${data.message}`);
+      }
+    } catch (error) {
+      console.error("Error approving roster:", error);
+      alert('Failed to approve roster.');
+    } finally {
+      setIsGenerateRosterModalOpen(false);
       setIsLoading(false);
     }
   };
@@ -179,7 +223,7 @@ export default function RosterPage() {
         {/* Planner-only button container */}
         <div style={styles.buttonContainer}>
           {user.account_type === "Planner" && (
-            <button style={styles.plannerButton} onClick={() => alert('Planner Mode: Click a date to edit shifts.')}>
+            <button style={styles.plannerButton} onClick={() => setIsGenerateRosterModalOpen(true)}>
               Generate Roster
             </button>
           )}
@@ -202,12 +246,19 @@ export default function RosterPage() {
         />
       </div>
       
-      {/* MODAL */}
+      {/* MODALS */}
       {isModalOpen && selectedShiftData && user.account_type === "Planner" && (
         <ShiftEditorModal
           shiftData={selectedShiftData}
           onClose={() => setIsModalOpen(false)}
           onSave={handleSaveShifts}
+        />
+      )}
+
+      {isGenerateRosterModalOpen && (
+        <GenerateRosterModal
+          onClose={() => setIsGenerateRosterModalOpen(false)}
+          onApprove={handleApproveRoster}
         />
       )}
     </div>
@@ -263,9 +314,12 @@ const CalendarView: React.FC<CalendarProps> = React.memo(({ currentDate, changeM
             return <div key={index} style={calStyles.emptyCell}></div>;
           }
 
-          // Format the date key (e.g., '2025-10-20')
+          // Format the date key (e.g., 'YYYY-MM-DD')
           const date = new Date(year, month, day);
-          const dateKey = date.toISOString().split('T')[0]; // YYYY-MM-DD
+          const yyyy = date.getFullYear();
+          const mm = String(date.getMonth() + 1).padStart(2, '0');
+          const dd = String(date.getDate()).padStart(2, '0');
+          const dateKey = `${yyyy}-${mm}-${dd}`;
           
           const dayShift = rosterData[dateKey]?.dayShiftEmployees || [];
           const nightShift = rosterData[dateKey]?.nightShiftEmployees || [];
@@ -274,12 +328,12 @@ const CalendarView: React.FC<CalendarProps> = React.memo(({ currentDate, changeM
 
           return (
             <div 
-              key={day} 
+              key={dateKey} 
               style={{ 
                 ...calStyles.dayCell, 
                 cursor: 'pointer', 
-                backgroundColor: hasShift ? '#f0fff0' : '#fff',
-                border: isToday ? '2px solid #1a73e8' : '1px solid #eee' // Highlight today
+                backgroundColor: hasShift ? '#2E4034' : '#3b3b3b',
+                border: isToday ? '2px solid #1a73e8' : '1px solid #555' // Highlight today
               }} 
               onClick={() => onDayClick(dateKey)}
             >
@@ -311,7 +365,8 @@ const CalendarView: React.FC<CalendarProps> = React.memo(({ currentDate, changeM
 const styles: Record<string, React.CSSProperties> = {
   root: {
     minHeight: '100vh',
-    backgroundColor: '#f4f7f6',
+    backgroundColor: '#121212',
+    color: '#fff',
     padding: '40px',
   },
   center: {
@@ -321,14 +376,14 @@ const styles: Record<string, React.CSSProperties> = {
   container: {
     maxWidth: '1000px',
     margin: '0 auto',
-    backgroundColor: 'white',
+    backgroundColor: '#2c2c2c',
     padding: '30px',
-    borderRadius: '8px',
-    boxShadow: '0 4px 12px rgba(0,0,0,0.1)',
+    borderRadius: '12px',
+    boxShadow: '0 8px 32px rgba(0,0,0,0.3)',
   },
   header: {
     textAlign: 'center',
-    color: '#333',
+    color: '#fff',
     marginBottom: '20px',
   },
   buttonContainer: {
@@ -339,50 +394,53 @@ const styles: Record<string, React.CSSProperties> = {
   },
   plannerButton: {
     padding: '10px 20px',
-    backgroundColor: '#34a853',
-    color: 'white',
     border: 'none',
-    borderRadius: '5px',
+    borderRadius: '8px',
     cursor: 'pointer',
     fontWeight: 'bold',
+    color: 'white',
+    backgroundImage: 'linear-gradient(45deg, #f09433 0%, #e6683c 25%, #dc2743 50%, #cc2366 75%, #bc1888 100%)',
   },
   leaveButton: {
     padding: '10px 20px',
-    backgroundColor: '#fbbc05',
-    color: '#333',
     border: 'none',
-    borderRadius: '5px',
+    borderRadius: '8px',
     cursor: 'pointer',
+    fontWeight: 'bold',
+    color: 'white',
+    backgroundColor: '#555',
   },
   backButton: {
     padding: '10px 20px',
-    backgroundColor: '#eee',
-    color: '#333',
-    border: '1px solid #ccc',
-    borderRadius: '5px',
+    border: '1px solid #555',
+    borderRadius: '8px',
     cursor: 'pointer',
+    fontWeight: 'bold',
+    backgroundColor: 'transparent',
+    color: '#fff',
   },
 };
 
 const calStyles: Record<string, React.CSSProperties> = {
   calendarContainer: {
     fontFamily: 'Arial, sans-serif',
-    border: '1px solid #ccc',
+    border: '1px solid #555',
     borderRadius: '8px',
     overflow: 'hidden',
+    backgroundColor: '#3b3b3b',
   },
   header: {
     display: 'flex',
     justifyContent: 'space-between',
     alignItems: 'center',
     padding: '15px',
-    backgroundColor: '#1a73e8',
+    backgroundColor: '#2c2c2c',
     color: 'white',
   },
   weekdays: {
     display: 'grid',
     gridTemplateColumns: 'repeat(7, 1fr)',
-    backgroundColor: '#e6e6e6',
+    backgroundColor: '#2c2c2c',
     fontWeight: 'bold',
     textAlign: 'center',
     padding: '10px 0',
@@ -393,12 +451,11 @@ const calStyles: Record<string, React.CSSProperties> = {
   calendarGrid: {
     display: 'grid',
     gridTemplateColumns: 'repeat(7, 1fr)',
-    borderTop: '1px solid #ccc',
   },
   dayCell: {
     minHeight: '100px',
     padding: '8px',
-    border: '1px solid #eee',
+    border: '1px solid #555',
     display: 'flex',
     flexDirection: 'column',
     alignItems: 'flex-start',
@@ -407,14 +464,14 @@ const calStyles: Record<string, React.CSSProperties> = {
   },
   emptyCell: {
     minHeight: '100px',
-    border: '1px solid #eee',
-    backgroundColor: '#f9f9f9',
+    border: '1px solid #555',
+    backgroundColor: '#2c2c2c',
   },
   dayNumber: {
     fontSize: '1.2em',
     fontWeight: 'bold',
     marginBottom: '5px',
-    color: '#333',
+    color: '#fff',
   },
   shiftIndicator: {
     fontSize: '0.7em',

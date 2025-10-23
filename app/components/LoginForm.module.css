@@ -1,9 +1,9 @@
 .form {
   display: flex;
   flex-direction: column;
-  gap: 1rem;
+  gap: 1.5rem;
   width: 300px;
-  
+  color: #fff;
 }
 
 .inputGroup {
@@ -12,20 +12,24 @@
 }
 
 .inputGroup input {
-  padding: 10px;
-  border: 1px solid #ccc;
-  border-radius: 6px;
+  padding: 12px;
+  border: 1px solid #555;
+  border-radius: 8px;
+  background-color: #3b3b3b;
+  color: #fff;
+  font-size: 1em;
 }
 
 .button {
-  background-color: #0070f3;
-  color: white;
   border: none;
   border-radius: 8px;
-  padding: 10px;
+  padding: 12px;
   cursor: pointer;
+  font-weight: bold;
+  color: white;
+  backgroundImage: 'linear-gradient(45deg, #405de6, #5851db, #833ab4, #c13584, #e1306c, #fd1d1d)';
 }
 
 .button:hover {
-  background-color: #005ad3;
+  opacity: 0.9;
 }
