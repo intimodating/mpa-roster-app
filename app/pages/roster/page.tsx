@@ -1,16 +1,15 @@
 // app/pages/roster/page.tsx
 "use client";
-import React, { useState, useEffect, useMemo } from 'react';
+import React, { useState, useEffect, useMemo, useCallback } from 'react';
 import { useRouter } from 'next/navigation';
-// Ensure this import path is correct for your project structure
 import ShiftEditorModal from './ShiftEditorModal'; 
 import Link from 'next/link';
 
-// --- INTERFACES ---
+// --- INTERFACES (UNCHANGED) ---
 interface UserData {
-  name: string;
-  user_id: string;
-  account_type: "Planner" | "Non-Planner" | string;
+    name: string;
+    user_id: string; // <-- This is the ID we'll use for checking assignments
+    account_type: "Planner" | "Non-Planner" | string;
 }
 
 interface ShiftData {
@@ -19,199 +18,187 @@ interface ShiftData {
     nightShiftEmployees: string[];
 }
 
-// RosterMap is a map of dateKey ('YYYY-MM-DD') to ShiftData
 type RosterMap = Record<string, ShiftData>;
 
 // --- MAIN COMPONENT ---
 export default function RosterPage() {
-  const router = useRouter();
-  const [user, setUser] = useState<UserData | null>(null);
-  const [currentDate, setCurrentDate] = useState(new Date());
-  const [isLoading, setIsLoading] = useState(true);
-  
-  // Roster state: Stores fetched shifts for the entire visible calendar range
-  const [rosterData, setRosterData] = useState<RosterMap>({});
-  
-  // Modal State
-  const [isModalOpen, setIsModalOpen] = useState(false);
-  const [selectedShiftData, setSelectedShiftData] = useState<ShiftData | null>(null);
+    const router = useRouter();
+    const [user, setUser] = useState<UserData | null>(null);
+    const [currentDate, setCurrentDate] = useState(new Date());
+    const [isLoading, setIsLoading] = useState(true);
+    const [rosterData, setRosterData] = useState<RosterMap>({});
+    const [isModalOpen, setIsModalOpen] = useState(false);
+    const [selectedShiftData, setSelectedShiftData] = useState<ShiftData | null>(null);
 
-  // --- AUTHENTICATION CHECK ---
-  useEffect(() => {
-    const storedUser = localStorage.getItem('loggedInUser');
-    if (!storedUser) {
-      router.push('/');
-      return;
-    }
-    const parsedUser = JSON.parse(storedUser);
-    setUser(parsedUser);
-  }, [router]);
+    // ... (AUTHENTICATION CHECK, DATA FETCH FUNCTION, changeMonth handler - UNCHANGED) ...
 
-  // --- FETCH MONTH DATA EFFECT ---
-  useEffect(() => {
-    // Only fetch if user data is loaded
-    if (!user) return; 
-
-    const fetchMonthData = async () => {
-      // 1. Calculate the start and end of the relevant calendar range
-      const year = currentDate.getFullYear();
-      const month = currentDate.getMonth();
-
-      // Find the first day of the month and its day of the week (0=Sun)
-      const firstOfMonth = new Date(year, month, 1);
-      const startDayOfWeek = firstOfMonth.getDay(); 
-      
-      // Calculate the start date of the visible calendar (may be in the previous month)
-      const startDate = new Date(firstOfMonth);
-      startDate.setDate(firstOfMonth.getDate() - startDayOfWeek);
-      
-      // Calculate the end date of the visible calendar (6 weeks from the start)
-      const endDate = new Date(startDate);
-      endDate.setDate(startDate.getDate() + 42); // 6 weeks * 7 days
-
-      // Format dates for API query (UTC midnight)
-      const startDateStr = startDate.toISOString().split('T')[0] + 'T00:00:00.000Z';
-      const endDateStr = endDate.toISOString().split('T')[0] + 'T00:00:00.000Z';
-
-      setIsLoading(true);
-      try {
-        const res = await fetch(`/api/roster/fetch-month?startDate=${startDateStr}&endDate=${endDateStr}`);
-        const result = await res.json();
-
-        if (result.success) {
-          // Update the rosterData with the fetched map
-          setRosterData(result.data);
-        } else {
-          console.error("Month Fetch Failed:", result.message);
+    useEffect(() => {
+        const storedUser = localStorage.getItem('loggedInUser');
+        if (!storedUser) {
+            router.push('/');
+            return;
         }
-      } catch (error) {
-        console.error("Error during month fetch:", error);
-      } finally {
-        setIsLoading(false);
-      }
+        const parsedUser = JSON.parse(storedUser);
+        setUser(parsedUser);
+    }, [router]);
+    
+    // Use useCallback to memoize the function, preventing infinite loops in useEffect
+    const fetchRosterData = useCallback(async () => {
+        // ... (fetch logic UNCHANGED) ...
+        if (!user) return; 
+
+        const year = currentDate.getFullYear();
+        const month = currentDate.getMonth();
+        const firstOfMonth = new Date(year, month, 1);
+        const startDayOfWeek = firstOfMonth.getDay(); 
+        const startDate = new Date(firstOfMonth);
+        startDate.setDate(firstOfMonth.getDate() - startDayOfWeek);
+        const endDate = new Date(startDate);
+        endDate.setDate(startDate.getDate() + 42); 
+
+        const startDateStr = startDate.toISOString().split('T')[0] + 'T00:00:00.000Z';
+        const endDateStr = endDate.toISOString().split('T')[0] + 'T00:00:00.000Z';
+
+        setIsLoading(true);
+        try {
+            const res = await fetch(`/api/roster/fetch-month?startDate=${startDateStr}&endDate=${endDateStr}`);
+            const result = await res.json();
+
+            if (result.success) {
+                setRosterData(result.data);
+            } else {
+                console.error("Month Fetch Failed:", result.message);
+            }
+        } catch (error) {
+            console.error("Error during month fetch:", error);
+        } finally {
+            setIsLoading(false);
+        }
+    }, [currentDate, user]); 
+
+    useEffect(() => {
+        fetchRosterData();
+    }, [fetchRosterData]); 
+
+    const changeMonth = (delta: number) => {
+        setCurrentDate(prev => new Date(prev.getFullYear(), prev.getMonth() + delta, 1));
     };
 
-    fetchMonthData();
 
-  }, [currentDate, user]); // Re-run when month changes or user loads
-
-  // --- HANDLERS ---
-  
-  const changeMonth = (delta: number) => {
-    setCurrentDate(prev => new Date(prev.getFullYear(), prev.getMonth() + delta, 1));
-  };
-
-  /**
-   * Prepares shift data for the modal using the data already fetched for the month.
-   * @param dateKey The date in 'YYYY-MM-DD' format.
-   */
-  const handleDayClick = (dateKey: string) => {
-    // Only Planners can edit and fetch details
-    if (user?.account_type !== "Planner") {
-      alert("Only Planners can view/edit shift details.");
-      return;
-    }
-    
-    // Get data from local state (already fetched for the month)
-    const existingData = rosterData[dateKey];
-    
-    // Prepare the data structure for the modal (empty arrays if no shifts found)
-    const dataForModal: ShiftData = existingData || {
-        date: dateKey, 
-        dayShiftEmployees: [], 
-        nightShiftEmployees: []
-    };
-
-    setSelectedShiftData(dataForModal);
-    setIsModalOpen(true);
-  };
-
-  /**
-   * Saves changes via the API and updates local state upon success.
-   */
-  const handleSaveShifts = async (updatedData: ShiftData) => {
-    setIsLoading(true);
-    try {
-      // Call the update API route
-      const res = await fetch('/api/roster/update', {
-          method: 'POST',
-          headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify(updatedData),
-      });
-
-      const data = await res.json();
-
-      if (!data.success) {
-          alert(`Failed to save: ${data.message}`);
-          return;
-      }
-
-      // Update the local state (rosterData) with the newly saved data
-      // This is crucial for instantly reflecting changes on the calendar grid
-      setRosterData(prev => ({ ...prev, [updatedData.date]: updatedData }));
-      
-      alert(`Roster saved successfully. ${data.count} shifts assigned.`);
-      setIsModalOpen(false);
-      
-    } catch (error) {
-        console.error("API Call Error:", error);
-        alert("An error occurred while saving the roster.");
-    } finally {
-      setIsLoading(false);
-    }
-  };
-  
-  // --- RENDER ---
-
-  if (isLoading || !user) {
-    return <div style={styles.center}>Loading Roster...</div>;
-  }
-  
-  if (!user.name) {
-    return <div style={styles.center}>Error: User data is incomplete.</div>;
-  }
-
-  return (
-    <div style={styles.root}>
-      <div style={styles.container}>
-        <h1 style={styles.header}>Roster Calendar for {user.name}</h1>
+    /**
+     * Handles a day click. Non-Planners can click to see details, but cannot edit.
+     * Planners click to open the editor modal.
+     */
+    const handleDayClick = (dateKey: string) => {
+        // Get data from local state (already fetched for the month)
+        const existingData = rosterData[dateKey];
         
-        {/* Planner-only button container */}
-        <div style={styles.buttonContainer}>
-          {user.account_type === "Planner" && (
-            <button style={styles.plannerButton} onClick={() => alert('Planner Mode: Click a date to edit shifts.')}>
-              Generate Roster
-            </button>
-          )}
-          
-          <button style={styles.leaveButton} onClick={() => alert('Applying for Leave...')}>
-            Apply Leave
-          </button>
-          
-          <button style={styles.backButton} onClick={() => router.push('/pages/home')}>
-            Back to Home
-          </button>
-        </div>
+        // Prepare the data structure for the modal (empty arrays if no shifts found)
+        const baseData: ShiftData = existingData 
+            ? { 
+                date: dateKey,
+                dayShiftEmployees: existingData.dayShiftEmployees, 
+                nightShiftEmployees: existingData.nightShiftEmployees 
+              }
+            : { 
+                date: dateKey, 
+                dayShiftEmployees: [], 
+                nightShiftEmployees: [] 
+              };
+        
+        // 🛑 Non-Planner Logic: Just alert them they can't edit
+        if (user?.account_type !== "Planner") {
+            alert(`Shift details for ${dateKey}:\n\nDay Shift: ${baseData.dayShiftEmployees.join(', ') || 'None'}\nNight Shift: ${baseData.nightShiftEmployees.join(', ') || 'None'}\n\nOnly Planners can edit the roster.`);
+            return;
+        }
 
-        {/* CALENDAR VIEW */}
-        <CalendarView
-          currentDate={currentDate}
-          changeMonth={changeMonth}
-          rosterData={rosterData}
-          onDayClick={handleDayClick} 
-        />
-      </div>
-      
-      {/* MODAL */}
-      {isModalOpen && selectedShiftData && user.account_type === "Planner" && (
-        <ShiftEditorModal
-          shiftData={selectedShiftData}
-          onClose={() => setIsModalOpen(false)}
-          onSave={handleSaveShifts}
-        />
-      )}
-    </div>
-  );
+        // Planner Logic: Open the modal for editing
+        setSelectedShiftData(baseData);
+        setIsModalOpen(true);
+    };
+
+    const handleSaveShifts = async (updatedData: ShiftData) => {
+        // ... (handleSaveShifts logic UNCHANGED) ...
+        setIsLoading(true);
+        try {
+            const res = await fetch('/api/roster/update', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify(updatedData),
+            });
+
+            const data = await res.json();
+
+            if (!data.success) {
+                alert(`Failed to save: ${data.message}`);
+                return; 
+            }
+
+            await fetchRosterData(); 
+            
+            alert(`Roster saved successfully. ${data.count} shifts assigned.`);
+            setIsModalOpen(false);
+            
+        } catch (error) {
+            console.error("API Call Error:", error);
+            alert("An error occurred while saving the roster.");
+        } finally {
+            setIsLoading(false);
+        }
+    };
+    
+    // --- RENDER ---
+
+    if (isLoading || !user) {
+        return <div style={styles.center}>Loading Roster...</div>;
+    }
+    
+    // ... (rest of the return statement UNCHANGED) ...
+
+    return (
+        <div style={styles.root}>
+            <div style={styles.container}>
+                <h1 style={styles.header}>Roster Calendar for {user.name}</h1>
+                
+                {/* Planner-only button container */}
+                <div style={styles.buttonContainer}>
+                    {user.account_type === "Planner" && (
+                        <button style={styles.plannerButton} onClick={() => alert('Planner Mode: Click a date to edit shifts.')}>
+                            Generate Roster
+                        </button>
+                    )}
+                    
+                    <button style={styles.leaveButton} onClick={() => alert('Applying for Leave...')}>
+                        Apply Leave
+                    </button>
+                    
+                    <button style={styles.backButton} onClick={() => router.push('/pages/home')}>
+                        Back to Home
+                    </button>
+                </div>
+
+                {/* CALENDAR VIEW */}
+                <CalendarView
+                    currentDate={currentDate}
+                    changeMonth={changeMonth}
+                    rosterData={rosterData}
+                    onDayClick={handleDayClick} 
+                    // 🛑 PASS USER ID AND ACCOUNT TYPE
+                    currentUserId={user.user_id}
+                    isPlanner={user.account_type === "Planner"}
+                />
+            </div>
+            
+            {/* MODAL (Only opens for Planners) */}
+            {isModalOpen && selectedShiftData && user.account_type === "Planner" && (
+                <ShiftEditorModal
+                    shiftData={selectedShiftData}
+                    onClose={() => setIsModalOpen(false)}
+                    onSave={handleSaveShifts}
+                />
+            )}
+        </div>
+    );
 }
 
 // --------------------------------------------------------------------------
@@ -219,89 +206,148 @@ export default function RosterPage() {
 // --------------------------------------------------------------------------
 
 interface CalendarProps {
-  currentDate: Date;
-  changeMonth: (delta: number) => void;
-  rosterData: RosterMap;
-  onDayClick: (dateKey: string) => void;
+    currentDate: Date;
+    changeMonth: (delta: number) => void;
+    rosterData: RosterMap;
+    onDayClick: (dateKey: string) => void;
+    currentUserId: string;
+    isPlanner: boolean;
 }
 
-const CalendarView: React.FC<CalendarProps> = React.memo(({ currentDate, changeMonth, rosterData, onDayClick }) => {
-  const month = currentDate.getMonth();
-  const year = currentDate.getFullYear();
-  const firstDayOfMonth = new Date(year, month, 1).getDay(); // 0 (Sun) to 6 (Sat)
-  const daysInMonth = new Date(year, month + 1, 0).getDate();
-  const todayDateString = new Date().toISOString().split('T')[0];
+const CalendarView: React.FC<CalendarProps> = React.memo(({ currentDate, changeMonth, rosterData, onDayClick, currentUserId, isPlanner }) => {
+    const month = currentDate.getMonth();
+    const year = currentDate.getFullYear();
+    const firstDayOfMonth = new Date(year, month, 1).getDay(); // 0 (Sun) to 6 (Sat)
+    const daysInMonth = new Date(year, month + 1, 0).getDate();
+    const todayDateString = new Date().toISOString().split('T')[0];
+    
+    // Normalize the current user's ID for case-insensitive checking
+    const normalizedUserId = currentUserId.toUpperCase();
 
-  const calendarDays: (number | null)[] = useMemo(() => {
-    const days: (number | null)[] = [];
-    // Fill leading empty cells
-    for (let i = 0; i < firstDayOfMonth; i++) {
-      days.push(null);
-    }
-    // Fill days of the month
-    for (let i = 1; i <= daysInMonth; i++) {
-      days.push(i);
-    }
-    return days;
-  }, [firstDayOfMonth, daysInMonth]);
+    // 🛑 FIX 1: Define calendarDays using useMemo
+    const calendarDays: (number | null)[] = useMemo(() => {
+        const days: (number | null)[] = [];
+        const daysBefore = new Date(year, month, 0).getDate(); // Days in the previous month
+        
+        // Add days from the previous month to fill the first week
+        for (let i = firstDayOfMonth - 1; i >= 0; i--) {
+            days.push(daysBefore - i);
+        }
+        
+        // Add days of the current month
+        for (let i = 1; i <= daysInMonth; i++) {
+            days.push(i);
+        }
+        
+        // Add days from the next month to fill the grid (42 cells total for 6 weeks)
+        const totalCells = 42;
+        const remainingCells = totalCells - days.length;
+        for (let i = 1; i <= remainingCells; i++) {
+            days.push(null);
+        }
+        return days;
+    }, [firstDayOfMonth, daysInMonth, year, month]);
 
-  return (
-    <div style={calStyles.calendarContainer}>
-      <div style={calStyles.header}>
-        <button onClick={() => changeMonth(-1)}>&lt;</button>
-        <h2>{currentDate.toLocaleString('default', { month: 'long', year: 'numeric' })}</h2>
-        <button onClick={() => changeMonth(1)}>&gt;</button>
-      </div>
-      <div style={calStyles.weekdays}>
-        {['Sun', 'Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat'].map(day => (
-          <div key={day} style={calStyles.weekdayCell}>{day}</div>
-        ))}
-      </div>
-      <div style={calStyles.calendarGrid}>
-        {calendarDays.map((day, index) => {
-          if (day === null) {
-            return <div key={index} style={calStyles.emptyCell}></div>;
-          }
+    // 🛑 FIX 2: Define getDateKey helper function
+    const getDateKey = (day: number | null, index: number): string => {
+        if (day === null) return '';
+        
+        let targetMonth = month;
+        let targetYear = year;
+        
+        const isPreviousMonth = index < firstDayOfMonth;
+        const isNextMonth = index >= firstDayOfMonth + daysInMonth;
+        
+        // Adjust month/year for previous/next month days shown in the grid
+        if (isPreviousMonth) {
+            targetMonth = month - 1;
+            if (targetMonth < 0) { targetMonth = 11; targetYear--; }
+        } else if (isNextMonth) {
+            targetMonth = month + 1;
+            if (targetMonth > 11) { targetMonth = 0; targetYear++; }
+        }
+        
+        // Create date object and format as YYYY-MM-DD
+        const date = new Date(targetYear, targetMonth, day);
+        return date.toISOString().split('T')[0];
+    };
 
-          // Format the date key (e.g., '2025-10-20')
-          const date = new Date(year, month, day);
-          const dateKey = date.toISOString().split('T')[0]; // YYYY-MM-DD
-          
-          const dayShift = rosterData[dateKey]?.dayShiftEmployees || [];
-          const nightShift = rosterData[dateKey]?.nightShiftEmployees || [];
-          const hasShift = dayShift.length > 0 || nightShift.length > 0;
-          const isToday = dateKey === todayDateString;
-
-          return (
-            <div 
-              key={day} 
-              style={{ 
-                ...calStyles.dayCell, 
-                cursor: 'pointer', 
-                backgroundColor: hasShift ? '#f0fff0' : '#fff',
-                border: isToday ? '2px solid #1a73e8' : '1px solid #eee' // Highlight today
-              }} 
-              onClick={() => onDayClick(dateKey)}
-            >
-              <div style={calStyles.dayNumber}>{day}</div>
-              
-              {/* Show shift indicators using fetched data */}
-              {dayShift.length > 0 && (
-                <div style={{...calStyles.shiftIndicator, backgroundColor: '#34a853'}}>
-                  Day: {dayShift.length}
-                </div>
-              )}
-              {nightShift.length > 0 && (
-                <div style={{...calStyles.shiftIndicator, backgroundColor: '#8a2be2', marginTop: '3px'}}>
-                  Night: {nightShift.length}
-                </div>
-              )}
+    return (
+        <div style={calStyles.calendarContainer}>
+            <div style={calStyles.header}>
+                <button onClick={() => changeMonth(-1)}>&lt;</button>
+                <h2>{currentDate.toLocaleString('default', { month: 'long', year: 'numeric' })}</h2>
+                <button onClick={() => changeMonth(1)}>&gt;</button>
             </div>
-          );
-        })}
-      </div>
-    </div>
-  );
+            <div style={calStyles.weekdays}>
+                {['Sun', 'Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat'].map(day => (
+                    <div key={day} style={calStyles.weekdayCell}>{day}</div>
+                ))}
+            </div>
+            <div style={calStyles.calendarGrid}>
+                {calendarDays.map((day, index) => { // <-- Now calendarDays is defined
+                    if (day === null) {
+                        return <div key={index} style={calStyles.emptyCell}></div>;
+                    }
+
+                    const dateKey = getDateKey(day, index); // <-- Now getDateKey is defined
+                    
+                    const shiftData = rosterData[dateKey];
+                    // Convert all IDs to uppercase for reliable checking
+                    const dayShift = shiftData?.dayShiftEmployees.map(id => id.toUpperCase()) || [];
+                    const nightShift = shiftData?.nightShiftEmployees.map(id => id.toUpperCase()) || [];
+                    
+                    const hasDayShift = dayShift.length > 0;
+                    const hasNightShift = nightShift.length > 0;
+
+                    // CHECK ASSIGNMENT STATUS
+                    const isAssignedDay = dayShift.includes(normalizedUserId);
+                    const isAssignedNight = nightShift.includes(normalizedUserId);
+                    const isUserAssigned = isAssignedDay || isAssignedNight;
+
+                    const isToday = dateKey === todayDateString;
+                    const isCurrentMonth = index >= firstDayOfMonth && index < firstDayOfMonth + daysInMonth;
+
+                    return (
+                        <div 
+                            key={index}
+                            style={{ 
+                                ...calStyles.dayCell, 
+                                cursor: 'pointer', 
+                                backgroundColor: isUserAssigned ? '#e8f5e9' : (hasDayShift || hasNightShift ? '#f0fff0' : '#fff'),
+                                border: isToday ? '2px solid #1a73e8' : '1px solid #eee',
+                                opacity: isCurrentMonth ? 1 : 0.5 
+                            }} 
+                            onClick={() => onDayClick(dateKey)}
+                        >
+                            <div style={calStyles.dayNumber}>{day}</div>
+                            
+                            {/* DAY SHIFT INDICATOR */}
+                            {(isPlanner || isAssignedDay) && hasDayShift && (
+                                <div style={{
+                                    ...calStyles.shiftIndicator, 
+                                    backgroundColor: isAssignedDay ? '#388e3c' : '#34a853'
+                                }}>
+                                    Day: {isPlanner ? dayShift.length : 'You'} 
+                                </div>
+                            )}
+                            
+                            {/* NIGHT SHIFT INDICATOR */}
+                            {(isPlanner || isAssignedNight) && hasNightShift && (
+                                <div style={{
+                                    ...calStyles.shiftIndicator, 
+                                    marginTop: '3px', 
+                                    backgroundColor: isAssignedNight ? '#7b1fa2' : '#8a2be2'
+                                }}>
+                                    Night: {isPlanner ? nightShift.length : 'You'}
+                                </div>
+                            )}
+                        </div>
+                    );
+                })}
+            </div>
+        </div>
+    );
 });
 
 // --------------------------------------------------------------------------

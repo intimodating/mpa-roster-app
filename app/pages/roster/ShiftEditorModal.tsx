@@ -14,23 +14,79 @@ interface ModalProps {
 }
 
 const ShiftEditorModal: React.FC<ModalProps> = ({ shiftData, onClose, onSave }) => {
-    // Convert arrays back to strings (one name per line) for editing
-    const [dayShiftText, setDayShiftText] = useState(shiftData.dayShiftEmployees.join('\n'));
-    const [nightShiftText, setNightShiftText] = useState(shiftData.nightShiftEmployees.join('\n'));
-    
-    const handleSave = () => {
-        // Convert text back to arrays, filtering out empty lines
-        const newDayShift = dayShiftText.split('\n').map(s => s.trim()).filter(s => s.length > 0);
-        const newNightShift = nightShiftText.split('\n').map(s => s.trim()).filter(s => s.length > 0);
+    // State: Convert arrays back to strings (one name per line) for editing
+    const [dayShiftText, setDayShiftText] = useState(
+        shiftData.dayShiftEmployees.map(id => id.toLowerCase()).join('\n')
+    );
+    const [nightShiftText, setNightShiftText] = useState(
+        shiftData.nightShiftEmployees.map(id => id.toLowerCase()).join('\n')
+    );
 
+    // The user input handler is now simplified to just update the state
+    const handleShiftChange = (currentText: string, setter: React.Dispatch<React.SetStateAction<string>>) => {
+        setter(currentText);
+    };
+
+    /**
+     * Helper function to normalize and clean the textarea content into an array of unique, non-empty IDs.
+     * @param text The raw string content from the textarea.
+     * @returns An array of trimmed, non-empty, unique employee IDs.
+     */
+    const cleanAndUnique = (text: string): string[] => {
+        const lines = text.split('\n');
+        // Trim, convert to uppercase for case-insensitive comparison, and filter out empty strings
+        const cleanedIDs = lines.map(s => s.trim().toUpperCase()).filter(s => s.length > 0);
+        // Deduplicate the array
+        return Array.from(new Set(cleanedIDs));
+    };
+
+    /**
+     * Client-side validation for duplicates and shift overlaps before calling the save handler.
+     */
+    const handleSave = () => {
+        // --- 1. PREPARE & CLEAN DATA ---
+        // Raw lists used for duplicate checking (allows multiple same names)
+        const rawDayList = dayShiftText.split('\n').map(s => s.trim().toUpperCase()).filter(s => s.length > 0);
+        const rawNightList = nightShiftText.split('\n').map(s => s.trim().toUpperCase()).filter(s => s.length > 0);
+
+        // Final lists to be saved (already deduplicated by the backend, but useful for overlap check)
+        const newDayShift = Array.from(new Set(rawDayList));
+        const newNightShift = Array.from(new Set(rawNightList));
+        
+        // --- 2. VALIDATION: DUPLICATES WITHIN A SINGLE SHIFT (e.g., "JOHN" entered twice) ---
+        if (rawDayList.length !== newDayShift.length) {
+             // Find the duplicate names
+            const dayDuplicates = rawDayList.filter((id, index) => rawDayList.indexOf(id) !== index);
+            alert(`ERROR: Duplicate employee IDs found in the Day Shift: ${Array.from(new Set(dayDuplicates)).join(', ')}.`);
+            return; // 🛑 Stop save
+        }
+        
+        if (rawNightList.length !== newNightShift.length) {
+            const nightDuplicates = rawNightList.filter((id, index) => rawNightList.indexOf(id) !== index);
+            alert(`ERROR: Duplicate employee IDs found in the Night Shift: ${Array.from(new Set(nightDuplicates)).join(', ')}.`);
+            return; // 🛑 Stop save
+        }
+
+        // --- 3. VALIDATION: OVERLAP BETWEEN SHIFTS (e.g., "JANE" in Day and Night) ---
+        const daySet = new Set(newDayShift);
+        const overlap = newNightShift.filter(id => daySet.has(id));
+
+        if (overlap.length > 0) {
+            alert(`ERROR: The following employee IDs are assigned to BOTH Day and Night shifts: ${overlap.join(', ')}. Please correct this conflict.`);
+            return; // 🛑 Stop save
+        }
+        
+        // --- 4. SUCCESS: Call parent save function with the cleaned, unique arrays ---
         const updatedData: ShiftData = {
-            ...shiftData,
-            dayShiftEmployees: newDayShift,
-            nightShiftEmployees: newNightShift,
+            date: shiftData.date,
+            dayShiftEmployees: newDayShift, // These arrays are already deduplicated here
+            nightShiftEmployees: newNightShift, // and confirmed not to overlap
         };
+        
         onSave(updatedData);
     };
 
+    // --- RENDER ---
     return (
         <div style={modalStyles.backdrop}>
             <div style={modalStyles.modal}>
@@ -38,19 +94,19 @@ const ShiftEditorModal: React.FC<ModalProps> = ({ shiftData, onClose, onSave }) 
                 
                 <div style={modalStyles.shiftsContainer}>
                     <div>
-                        <h3 style={modalStyles.shiftHeader}>Day Shift (Add one name per line)</h3>
+                        <h3 style={modalStyles.shiftHeader}>Day Shift (Add one User ID per line)</h3>
                         <textarea
                             value={dayShiftText}
-                            onChange={(e) => setDayShiftText(e.target.value)}
+                            onChange={(e) => handleShiftChange(e.target.value, setDayShiftText)}
                             style={modalStyles.textarea}
                             rows={6}
                         />
                     </div>
                     <div>
-                        <h3 style={modalStyles.shiftHeader}>Night Shift (Add one name per line)</h3>
+                        <h3 style={modalStyles.shiftHeader}>Night Shift (Add one User ID per line)</h3>
                         <textarea
                             value={nightShiftText}
-                            onChange={(e) => setNightShiftText(e.target.value)}
+                            onChange={(e) => handleShiftChange(e.target.value, setNightShiftText)}
                             style={modalStyles.textarea}
                             rows={6}
                         />
@@ -66,6 +122,7 @@ const ShiftEditorModal: React.FC<ModalProps> = ({ shiftData, onClose, onSave }) 
     );
 };
 
+// ... (modalStyles object remains unchanged) ...
 const modalStyles: Record<string, React.CSSProperties> = {
     backdrop: {
         position: 'fixed',
@@ -134,5 +191,6 @@ const modalStyles: Record<string, React.CSSProperties> = {
         cursor: 'pointer',
     },
 };
+
 
 export default ShiftEditorModal;
