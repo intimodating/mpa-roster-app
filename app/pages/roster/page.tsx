@@ -4,6 +4,7 @@ import React, { useState, useEffect, useMemo } from 'react';
 import { useRouter } from 'next/navigation';
 // Ensure this import path is correct for your project structure
 import ShiftEditorModal from './ShiftEditorModal';
+import ShiftViewerModal from './ShiftViewerModal';
 import GenerateRosterModal from './GenerateRosterModal';
 import Link from 'next/link';
 
@@ -35,6 +36,7 @@ export default function RosterPage() {
   
   // Modal State
   const [isModalOpen, setIsModalOpen] = useState(false);
+  const [isViewerModalOpen, setIsViewerModalOpen] = useState(false);
   const [selectedShiftData, setSelectedShiftData] = useState<ShiftData | null>(null);
   const [isGenerateRosterModalOpen, setIsGenerateRosterModalOpen] = useState(false);
 
@@ -108,16 +110,7 @@ export default function RosterPage() {
    * @param dateKey The date in 'YYYY-MM-DD' format.
    */
   const handleDayClick = (dateKey: string) => {
-    // Only Planners can edit and fetch details
-    if (user?.account_type !== "Planner") {
-      alert("Only Planners can view/edit shift details.");
-      return;
-    }
-    
-    // Get data from local state (already fetched for the month)
     const existingData = rosterData[dateKey];
-    
-    // Prepare the data structure for the modal (empty arrays if no shifts found)
     const dataForModal: ShiftData = {
         date: dateKey, 
         dayShiftEmployees: existingData?.dayShiftEmployees || [], 
@@ -125,7 +118,12 @@ export default function RosterPage() {
     };
 
     setSelectedShiftData(dataForModal);
-    setIsModalOpen(true);
+
+    if (user?.account_type === "Planner") {
+        setIsModalOpen(true);
+    } else {
+        setIsViewerModalOpen(true);
+    }
   };
 
   /**
@@ -252,6 +250,13 @@ export default function RosterPage() {
           shiftData={selectedShiftData}
           onClose={() => setIsModalOpen(false)}
           onSave={handleSaveShifts}
+        />
+      )}
+
+      {isViewerModalOpen && selectedShiftData && (
+        <ShiftViewerModal
+          shiftData={selectedShiftData}
+          onClose={() => setIsViewerModalOpen(false)}
         />
       )}
 
