@@ -1,17 +1,19 @@
 // app/pages/roster/page.tsx
 "use client";
-import React, { useState, useEffect, useMemo } from 'react';
+import React, { useState, useEffect, useMemo, useCallback } from 'react';
 import { useRouter } from 'next/navigation';
+
 // Ensure this import path is correct for your project structure
 import ShiftEditorModal from './ShiftEditorModal';
 import GenerateRosterModal from './GenerateRosterModal';
+
 import Link from 'next/link';
 
-// --- INTERFACES ---
+// --- INTERFACES (UNCHANGED) ---
 interface UserData {
-  name: string;
-  user_id: string;
-  account_type: "Planner" | "Non-Planner" | string;
+    name: string;
+    user_id: string; // <-- This is the ID we'll use for checking assignments
+    account_type: "Planner" | "Non-Planner" | string;
 }
 
 interface ShiftData {
@@ -20,7 +22,6 @@ interface ShiftData {
     nightShiftEmployees: string[];
 }
 
-// RosterMap is a map of dateKey ('YYYY-MM-DD') to ShiftData
 type RosterMap = Record<string, ShiftData>;
 
 // --- MAIN COMPONENT ---
@@ -85,12 +86,16 @@ export default function RosterPage() {
           setRosterData(result.data);
         } else {
           console.error("Month Fetch Failed:", result.message);
+
         }
-      } catch (error) {
-        console.error("Error during month fetch:", error);
-      } finally {
-        setIsLoading(false);
-      }
+    }, [currentDate, user]); 
+
+    useEffect(() => {
+        fetchRosterData();
+    }, [fetchRosterData]); 
+
+    const changeMonth = (delta: number) => {
+        setCurrentDate(prev => new Date(prev.getFullYear(), prev.getMonth() + delta, 1));
     };
 
     fetchMonthData();
@@ -207,13 +212,33 @@ export default function RosterPage() {
   
   // --- RENDER ---
 
-  if (isLoading || !user) {
-    return <div style={styles.center}>Loading Roster...</div>;
-  }
-  
-  if (!user.name) {
-    return <div style={styles.center}>Error: User data is incomplete.</div>;
-  }
+    if (isLoading || !user) {
+        return <div style={styles.center}>Loading Roster...</div>;
+    }
+    
+    // ... (rest of the return statement UNCHANGED) ...
+
+    return (
+        <div style={styles.root}>
+            <div style={styles.container}>
+                <h1 style={styles.header}>Roster Calendar for {user.name}</h1>
+                
+                {/* Planner-only button container */}
+                <div style={styles.buttonContainer}>
+                    {user.account_type === "Planner" && (
+                        <button style={styles.plannerButton} onClick={() => alert('Planner Mode: Click a date to edit shifts.')}>
+                            Generate Roster
+                        </button>
+                    )}
+                    
+                    <button style={styles.leaveButton} onClick={() => alert('Applying for Leave...')}>
+                        Apply Leave
+                    </button>
+                    
+                    <button style={styles.backButton} onClick={() => router.push('/pages/home')}>
+                        Back to Home
+                    </button>
+                </div>
 
   return (
     <div style={styles.root}>
@@ -270,10 +295,12 @@ export default function RosterPage() {
 // --------------------------------------------------------------------------
 
 interface CalendarProps {
-  currentDate: Date;
-  changeMonth: (delta: number) => void;
-  rosterData: RosterMap;
-  onDayClick: (dateKey: string) => void;
+    currentDate: Date;
+    changeMonth: (delta: number) => void;
+    rosterData: RosterMap;
+    onDayClick: (dateKey: string) => void;
+    currentUserId: string;
+    isPlanner: boolean;
 }
 
 const CalendarView: React.FC<CalendarProps> = React.memo(({ currentDate, changeMonth, rosterData, onDayClick }) => {
@@ -351,11 +378,75 @@ const CalendarView: React.FC<CalendarProps> = React.memo(({ currentDate, changeM
                 </div>
               )}
             </div>
-          );
-        })}
-      </div>
-    </div>
-  );
+            <div style={calStyles.weekdays}>
+                {['Sun', 'Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat'].map(day => (
+                    <div key={day} style={calStyles.weekdayCell}>{day}</div>
+                ))}
+            </div>
+            <div style={calStyles.calendarGrid}>
+                {calendarDays.map((day, index) => { // <-- Now calendarDays is defined
+                    if (day === null) {
+                        return <div key={index} style={calStyles.emptyCell}></div>;
+                    }
+
+                    const dateKey = getDateKey(day, index); // <-- Now getDateKey is defined
+                    
+                    const shiftData = rosterData[dateKey];
+                    // Convert all IDs to uppercase for reliable checking
+                    const dayShift = shiftData?.dayShiftEmployees.map(id => id.toUpperCase()) || [];
+                    const nightShift = shiftData?.nightShiftEmployees.map(id => id.toUpperCase()) || [];
+                    
+                    const hasDayShift = dayShift.length > 0;
+                    const hasNightShift = nightShift.length > 0;
+
+                    // CHECK ASSIGNMENT STATUS
+                    const isAssignedDay = dayShift.includes(normalizedUserId);
+                    const isAssignedNight = nightShift.includes(normalizedUserId);
+                    const isUserAssigned = isAssignedDay || isAssignedNight;
+
+                    const isToday = dateKey === todayDateString;
+                    const isCurrentMonth = index >= firstDayOfMonth && index < firstDayOfMonth + daysInMonth;
+
+                    return (
+                        <div 
+                            key={index}
+                            style={{ 
+                                ...calStyles.dayCell, 
+                                cursor: 'pointer', 
+                                backgroundColor: isUserAssigned ? '#e8f5e9' : (hasDayShift || hasNightShift ? '#f0fff0' : '#fff'),
+                                border: isToday ? '2px solid #1a73e8' : '1px solid #eee',
+                                opacity: isCurrentMonth ? 1 : 0.5 
+                            }} 
+                            onClick={() => onDayClick(dateKey)}
+                        >
+                            <div style={calStyles.dayNumber}>{day}</div>
+                            
+                            {/* DAY SHIFT INDICATOR */}
+                            {(isPlanner || isAssignedDay) && hasDayShift && (
+                                <div style={{
+                                    ...calStyles.shiftIndicator, 
+                                    backgroundColor: isAssignedDay ? '#388e3c' : '#34a853'
+                                }}>
+                                    Day: {isPlanner ? dayShift.length : 'You'} 
+                                </div>
+                            )}
+                            
+                            {/* NIGHT SHIFT INDICATOR */}
+                            {(isPlanner || isAssignedNight) && hasNightShift && (
+                                <div style={{
+                                    ...calStyles.shiftIndicator, 
+                                    marginTop: '3px', 
+                                    backgroundColor: isAssignedNight ? '#7b1fa2' : '#8a2be2'
+                                }}>
+                                    Night: {isPlanner ? nightShift.length : 'You'}
+                                </div>
+                            )}
+                        </div>
+                    );
+                })}
+            </div>
+        </div>
+    );
 });
 
 // --------------------------------------------------------------------------
