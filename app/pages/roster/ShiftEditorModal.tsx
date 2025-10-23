@@ -15,8 +15,12 @@ interface ModalProps {
 
 const ShiftEditorModal: React.FC<ModalProps> = ({ shiftData, onClose, onSave }) => {
     // State: Convert arrays back to strings (one name per line) for editing
-    const [dayShiftText, setDayShiftText] = useState(shiftData.dayShiftEmployees.join('\n'));
-    const [nightShiftText, setNightShiftText] = useState(shiftData.nightShiftEmployees.join('\n'));
+    const [dayShiftText, setDayShiftText] = useState(
+        shiftData.dayShiftEmployees.map(id => id.toLowerCase()).join('\n')
+    );
+    const [nightShiftText, setNightShiftText] = useState(
+        shiftData.nightShiftEmployees.map(id => id.toLowerCase()).join('\n')
+    );
 
     // The user input handler is now simplified to just update the state
     const handleShiftChange = (currentText: string, setter: React.Dispatch<React.SetStateAction<string>>) => {

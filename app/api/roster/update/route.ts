@@ -6,15 +6,15 @@ import User from "../../../../models/users";
 
 // Define the expected structure of the incoming data
 interface UpdatePayload {
-    date: string; // The date string (e.g., '2025-10-20')
-    dayShiftEmployees: string[]; // These are expected to be user_ids (e.g., 'joetay')
+    date: string; 
+    dayShiftEmployees: string[]; 
     nightShiftEmployees: string[];
 }
 
 interface Assignment {
     user_id: string;
-    date: Date; // Mongoose Date object
-    shift_type: 'Day Shift' | 'Night Shift'; // Union Literal Type
+    date: Date;
+    shift_type: 'Day Shift' | 'Night Shift';
 }
 
 export async function POST(req: Request) {
@@ -27,13 +27,17 @@ export async function POST(req: Request) {
 
         await connectToDatabase();
 
-        // 🛑 NEW CHECK 1: Remove duplicates from the input arrays
-        const uniqueDayShiftIds = Array.from(new Set(dayShiftEmployees));
-        const uniqueNightShiftIds = Array.from(new Set(nightShiftEmployees));
+        // 1. NORMALIZE INPUT: Convert all incoming IDs to UPPERCASE for consistent comparison
+        const normalizedDayShiftIds = Array.from(new Set(
+            dayShiftEmployees.map(id => id.trim().toUpperCase())
+        ));
+        const normalizedNightShiftIds = Array.from(new Set(
+            nightShiftEmployees.map(id => id.trim().toUpperCase())
+        ));
 
-        // 🛑 NEW CHECK 2: Check for employees assigned to BOTH Day and Night shifts
-        const daySet = new Set(uniqueDayShiftIds);
-        const overlap = uniqueNightShiftIds.filter(id => daySet.has(id));
+        // 2. CHECK for OVERLAP (Employee assigned to BOTH Day and Night shifts)
+        const daySet = new Set(normalizedDayShiftIds);
+        const overlap = normalizedNightShiftIds.filter(id => daySet.has(id));
 
         if (overlap.length > 0) {
             return NextResponse.json({
@@ -42,18 +46,31 @@ export async function POST(req: Request) {
             }, { status: 400 });
         }
 
-        // 1. VALIDATE: Check all submitted IDs against the User collection
-        const allSubmittedIds = Array.from(new Set([...dayShiftEmployees, ...nightShiftEmployees]));
-
-        // Fetch all valid user_ids from the User collection that match the submitted IDs
-        const validUsers = await User.find({ 
-            user_id: { $in: allSubmittedIds } // Searching by user_id
-        }).select('user_id -_id'); 
-
-        const validUserIds = new Set(validUsers.map(u => u.user_id));
+        // 3. VALIDATE: Check all submitted IDs against the User collection (Case-Insensitive)
+        const allNormalizedSubmittedIds = Array.from(new Set([
+            ...normalizedDayShiftIds, 
+            ...normalizedNightShiftIds
+        ]));
         
-        // Find any IDs that were submitted but were NOT returned by the database query
-        const invalidEmployees = allSubmittedIds.filter(id => !validUserIds.has(id));
+        // Fetch all valid user_ids from the User collection that match the submitted IDs
+        const validUsers = await User.find({
+            // Query using the normalized IDs
+            user_id: { $in: allNormalizedSubmittedIds }
+        })
+        .select('user_id -_id')
+        // 🛑 FIX: Apply Collation to force case-insensitive comparison (strength: 2)
+        .collation({ locale: 'en', strength: 2 }); 
+
+        // Normalize the retrieved database IDs (optional, but ensures robust check)
+        const validUserIds = new Set(validUsers.map(u => u.user_id.toUpperCase()));
+        
+        // Find any submitted IDs that were NOT returned by the database query
+        const invalidEmployees: string[] = [];
+        for (const id of allNormalizedSubmittedIds) {
+            if (!validUserIds.has(id)) {
+                invalidEmployees.push(id);
+            }
+        }
         
         // If any IDs are invalid, halt the save and return an error
         if (invalidEmployees.length > 0) {
@@ -63,7 +80,7 @@ export async function POST(req: Request) {
             }, { status: 400 });
         }
         
-        // 2. Prepare Date Range for Query
+        // 4. Prepare Date Range for Query
         const startOfDayUTC = new Date(date + 'T00:00:00.000Z');
         const endOfDayUTC = new Date(startOfDayUTC.getTime() + (24 * 60 * 60 * 1000));
 
@@ -74,28 +91,28 @@ export async function POST(req: Request) {
             }
         };
 
-        // 3. CLEAR: Delete all existing shifts for this 24-hour period
+        // 5. CLEAR: Delete all existing shifts for this 24-hour period
         await Roster.deleteMany(dateFilter);
 
-        // 4. BUILD NEW SHIFT ASSIGNMENTS
-        const newAssignments: Assignment[] = []; // Explicitly typed as Assignment[]
+        // 6. BUILD NEW SHIFT ASSIGNMENTS
+        const newAssignments: Assignment[] = []; 
 
-        // Helper function to build assignments
-        // 🛑 FIX: Explicitly type shiftType with the literal union type
         const buildAssignments = (ids: string[], shiftType: 'Day Shift' | 'Night Shift') => { 
              for (const userId of ids) {
-                newAssignments.push({
-                    user_id: userId,
-                    date: startOfDayUTC,
-                    shift_type: shiftType // Now type-safe
-                });
-            }
+                 newAssignments.push({
+                     // Use the normalized IDs for saving to the Roster collection
+                     user_id: userId, 
+                     date: startOfDayUTC,
+                     shift_type: shiftType
+                 });
+             }
         };
         
-        buildAssignments(uniqueDayShiftIds, 'Day Shift');
-        buildAssignments(uniqueNightShiftIds, 'Night Shift');
+        // Use the normalized IDs for building assignments
+        buildAssignments(normalizedDayShiftIds, 'Day Shift');
+        buildAssignments(normalizedNightShiftIds, 'Night Shift');
         
-        // 5. INSERT: Insert all new assignments simultaneously
+        // 7. INSERT: Insert all new assignments simultaneously
         if (newAssignments.length > 0) {
             await Roster.insertMany(newAssignments);
         }
