@@ -5,6 +5,7 @@ import { useRouter } from 'next/navigation';
 // Ensure this import path is correct for your project structure
 import ShiftEditorModal from './ShiftEditorModal';
 import ShiftViewerModal from './ShiftViewerModal';
+import LeaveApplicationModal from './LeaveApplicationModal';
 import GenerateRosterModal from './GenerateRosterModal';
 import Link from 'next/link';
 
@@ -37,8 +38,9 @@ export default function RosterPage() {
   // Modal State
   const [isModalOpen, setIsModalOpen] = useState(false);
   const [isViewerModalOpen, setIsViewerModalOpen] = useState(false);
-  const [selectedShiftData, setSelectedShiftData] = useState<ShiftData | null>(null);
+  const [isLeaveModalOpen, setIsLeaveModalOpen] = useState(false);
   const [isGenerateRosterModalOpen, setIsGenerateRosterModalOpen] = useState(false);
+  const [selectedShiftData, setSelectedShiftData] = useState<ShiftData | null>(null);
 
   // --- AUTHENTICATION CHECK ---
   useEffect(() => {
@@ -226,10 +228,10 @@ export default function RosterPage() {
             </button>
           )}
           
-          <button style={styles.leaveButton} onClick={() => alert('Applying for Leave...')}>
+          <button style={styles.leaveButton} onClick={() => setIsLeaveModalOpen(true)}>
             Apply Leave
           </button>
-          
+
           <button style={styles.backButton} onClick={() => router.push('/pages/home')}>
             Back to Home
           </button>
@@ -240,11 +242,12 @@ export default function RosterPage() {
           currentDate={currentDate}
           changeMonth={changeMonth}
           rosterData={rosterData}
-          onDayClick={handleDayClick} 
+          onDayClick={handleDayClick}
+          user={user}
         />
       </div>
-      
-      {/* MODALS */}
+
+      {/* MODAL */}
       {isModalOpen && selectedShiftData && user.account_type === "Planner" && (
         <ShiftEditorModal
           shiftData={selectedShiftData}
@@ -257,6 +260,12 @@ export default function RosterPage() {
         <ShiftViewerModal
           shiftData={selectedShiftData}
           onClose={() => setIsViewerModalOpen(false)}
+        />
+      )}
+
+      {isLeaveModalOpen && (
+        <LeaveApplicationModal
+          onClose={() => setIsLeaveModalOpen(false)}
         />
       )}
 
@@ -279,9 +288,10 @@ interface CalendarProps {
   changeMonth: (delta: number) => void;
   rosterData: RosterMap;
   onDayClick: (dateKey: string) => void;
+  user: UserData | null;
 }
 
-const CalendarView: React.FC<CalendarProps> = React.memo(({ currentDate, changeMonth, rosterData, onDayClick }) => {
+const CalendarView: React.FC<CalendarProps> = React.memo(({ currentDate, changeMonth, rosterData, onDayClick, user }) => {
   const month = currentDate.getMonth();
   const year = currentDate.getFullYear();
   const firstDayOfMonth = new Date(year, month, 1).getDay(); // 0 (Sun) to 6 (Sat)
@@ -325,34 +335,39 @@ const CalendarView: React.FC<CalendarProps> = React.memo(({ currentDate, changeM
           const mm = String(date.getMonth() + 1).padStart(2, '0');
           const dd = String(date.getDate()).padStart(2, '0');
           const dateKey = `${yyyy}-${mm}-${dd}`;
-          
           const dayShift = rosterData[dateKey]?.dayShiftEmployees || [];
           const nightShift = rosterData[dateKey]?.nightShiftEmployees || [];
           const hasShift = dayShift.length > 0 || nightShift.length > 0;
           const isToday = dateKey === todayDateString;
 
+          const isUserOnDayShift = user?.account_type === 'Non-Planner' && dayShift.map(id => id.toUpperCase()).includes(user.user_id.toUpperCase());
+          const isUserOnNightShift = user?.account_type === 'Non-Planner' && nightShift.map(id => id.toUpperCase()).includes(user.user_id.toUpperCase());
+          const isUserOnShift = isUserOnDayShift || isUserOnNightShift;
+
+          const dayText = isUserOnDayShift ? 'You' : dayShift.length;
+          const nightText = isUserOnNightShift ? 'You' : nightShift.length;
+
           return (
-            <div 
-              key={dateKey} 
-              style={{ 
-                ...calStyles.dayCell, 
-                cursor: 'pointer', 
-                backgroundColor: hasShift ? '#2E4034' : '#3b3b3b',
-                border: isToday ? '2px solid #1a73e8' : '1px solid #555' // Highlight today
-              }} 
-              onClick={() => onDayClick(dateKey)}
+            <div
+              key={dateKey}
+              style={{
+                ...calStyles.dayCell,
+                cursor: 'pointer',
+                                                backgroundColor: hasShift ? '#2E4034' : '#3b3b3b',
+                                                                border: isToday ? '2px solid #1a73e8' : '1px solid #555' // Highlight today
+                                                              }}                 onClick={() => onDayClick(dateKey)}
             >
               <div style={calStyles.dayNumber}>{day}</div>
               
               {/* Show shift indicators using fetched data */}
               {dayShift.length > 0 && (
-                <div style={{...calStyles.shiftIndicator, backgroundColor: '#34a853'}}>
-                  Day: {dayShift.length}
+                <div style={{...calStyles.shiftIndicator, backgroundColor: isUserOnDayShift ? 'red' : '#34a853'}}>
+                  Day: {dayText}
                 </div>
               )}
               {nightShift.length > 0 && (
-                <div style={{...calStyles.shiftIndicator, backgroundColor: '#8a2be2', marginTop: '3px'}}>
-                  Night: {nightShift.length}
+                <div style={{...calStyles.shiftIndicator, backgroundColor: isUserOnNightShift ? 'red' : '#8a2be2', marginTop: '3px'}}>
+                  Night: {nightText}
                 </div>
               )}
             </div>
