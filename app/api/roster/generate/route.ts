@@ -39,7 +39,7 @@ export async function POST(req: Request) {
                 const requiredCount = gradeCounts[grade];
                 const usersOfGrade = availableUsers.filter(u => (u as any).proficiency_grade === parseInt(grade));
                 const usersToAssign = usersOfGrade.slice(0, requiredCount);
-                generatedRoster[dateKey].dayShift.push(...usersToAssign.map(u => u.name as string));
+                generatedRoster[dateKey].dayShift.push(...usersToAssign.map(u => u.user_id as string));
                 availableUsers = availableUsers.filter(u => !usersToAssign.find(a => a.user_id === u.user_id));
             }
 
@@ -48,7 +48,7 @@ export async function POST(req: Request) {
                 const requiredCount = gradeCounts[grade];
                 const usersOfGrade = availableUsers.filter(u => (u as any).proficiency_grade === parseInt(grade));
                 const usersToAssign = usersOfGrade.slice(0, requiredCount);
-                generatedRoster[dateKey].nightShift.push(...usersToAssign.map(u => u.name as string));
+                generatedRoster[dateKey].nightShift.push(...usersToAssign.map(u => u.user_id as string));
                 availableUsers = availableUsers.filter(u => !usersToAssign.find(a => a.user_id === u.user_id));
             }
 
