@@ -7,6 +7,7 @@ interface ShiftData {
     date: string;
     dayShiftEmployees: string[];
     nightShiftEmployees: string[];
+    leaves?: string[]; // Optional: user_ids of people on leave
 }
 
 interface Props {
@@ -19,6 +20,16 @@ const ShiftViewerModal: React.FC<Props> = ({ shiftData, onClose }) => {
         <div style={styles.overlay}>
             <div style={styles.modal}>
                 <h2 style={styles.header}>Shift Details for {shiftData.date}</h2>
+                
+                {shiftData.leaves && shiftData.leaves.length > 0 && (
+                    <div style={styles.leavesContainer}>
+                        <h3 style={styles.shiftTitle}>On Leave</h3>
+                        <ul style={styles.employeeList}>
+                            {shiftData.leaves.map(emp => <li key={emp} style={styles.employeeItem}>{emp}</li>)}
+                        </ul>
+                    </div>
+                )}
+
                 <div style={styles.shiftContainer}>
                     <div style={styles.shiftColumn}>
                         <h3 style={styles.shiftTitle}>Day Shift</h3>
@@ -63,6 +74,12 @@ const styles: Record<string, React.CSSProperties> = {
         textAlign: 'center',
         color: '#fff',
         marginBottom: '20px',
+    },
+    leavesContainer: {
+        marginBottom: '20px',
+        padding: '10px',
+        backgroundColor: 'red',
+        borderRadius: '5px',
     },
     shiftContainer: {
         display: 'flex',

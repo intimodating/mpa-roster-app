@@ -24,6 +24,50 @@ const LeaveApplicationModal: React.FC<Props> = ({ onClose }) => {
         return diffDays;
     }, [startDate, endDate]);
 
+    const handleSubmit = async () => {
+        const storedUser = localStorage.getItem('loggedInUser');
+        if (!storedUser) {
+            alert("You must be logged in to apply for leave.");
+            return;
+        }
+        const user = JSON.parse(storedUser);
+
+        if (!startDate || !endDate || !leaveType) {
+            alert("Please fill in all fields.");
+            return;
+        }
+
+        if (new Date(startDate) > new Date(endDate)) {
+            alert("Start date cannot be after end date.");
+            return;
+        }
+
+        try {
+            const res = await fetch('/api/leave/apply', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({
+                    user_id: user.user_id,
+                    startDate,
+                    endDate,
+                    leave_type: leaveType,
+                }),
+            });
+
+            const data = await res.json();
+
+            if (data.success) {
+                alert(data.message);
+                onClose();
+            } else {
+                alert(`Failed to apply for leave: ${data.message}`);
+            }
+        } catch (error) {
+            console.error("Leave application error:", error);
+            alert("An error occurred while submitting your leave application.");
+        }
+    };
+
     return (
         <div style={styles.overlay}>
             <div style={styles.modal}>
@@ -46,7 +90,7 @@ const LeaveApplicationModal: React.FC<Props> = ({ onClose }) => {
                     <p style={styles.daysText}>Number of days: {numberOfDays}</p>
                 )}
                 <div style={styles.buttonContainer}>
-                    <button onClick={() => alert('Apply button clicked')} style={styles.applyButton}>Apply</button>
+                    <button onClick={handleSubmit} style={styles.applyButton}>Apply</button>
                     <button onClick={onClose} style={styles.cancelButton}>Cancel</button>
                 </div>
             </div>
