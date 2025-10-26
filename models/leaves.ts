@@ -16,6 +16,12 @@ const LeaveSchema = new mongoose.Schema({
         enum: ["Annual leave", "Medical leave", "Hospitalisation Leave", "Parental Leave"],
         required: true,
     },
+    status: {
+        type: String,
+        enum: ["Approved", "Rejected", "Pending"],
+        default: "Pending",
+        required: true,
+    },
 }, {
     collection: 'Leaves',
     timestamps: true
