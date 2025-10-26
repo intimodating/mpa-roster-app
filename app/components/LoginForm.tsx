@@ -44,6 +44,7 @@ export default function LoginForm({ onLogin, isLoading}: LoginFormProps) {
 
       <button 
         type="submit"
+        className={styles.button}
         // 🛑 Disable the button while loading
         disabled={isLoading} 
         style={{ opacity: isLoading ? 0.6 : 1 }} // Optional: dim the button

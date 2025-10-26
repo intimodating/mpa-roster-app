@@ -7,6 +7,7 @@ import ShiftEditorModal from './ShiftEditorModal';
 import ShiftViewerModal from './ShiftViewerModal';
 import LeaveApplicationModal from './LeaveApplicationModal';
 import GenerateRosterModal from './GenerateRosterModal';
+import LeaveHistoryModal from './LeaveHistoryModal';
 import Link from 'next/link';
 
 // --- INTERFACES ---
@@ -20,6 +21,7 @@ interface ShiftData {
     date: string; // YYYY-MM-DD
     dayShiftEmployees: string[];
     nightShiftEmployees: string[];
+    leaves?: string[]; // Optional: user_ids of people on leave
 }
 
 // RosterMap is a map of dateKey ('YYYY-MM-DD') to ShiftData
@@ -34,12 +36,15 @@ export default function RosterPage() {
   
   // Roster state: Stores fetched shifts for the entire visible calendar range
   const [rosterData, setRosterData] = useState<RosterMap>({});
+  const [approvedLeaveDates, setApprovedLeaveDates] = useState<string[]>([]);
+  const [allApprovedLeaves, setAllApprovedLeaves] = useState<Record<string, string[]>>({});
   
   // Modal State
   const [isModalOpen, setIsModalOpen] = useState(false);
   const [isViewerModalOpen, setIsViewerModalOpen] = useState(false);
   const [isLeaveModalOpen, setIsLeaveModalOpen] = useState(false);
   const [isGenerateRosterModalOpen, setIsGenerateRosterModalOpen] = useState(false);
+  const [isLeaveHistoryModalOpen, setIsLeaveHistoryModalOpen] = useState(false);
   const [selectedShiftData, setSelectedShiftData] = useState<ShiftData | null>(null);
 
   // --- AUTHENTICATION CHECK ---
@@ -58,46 +63,72 @@ export default function RosterPage() {
     // Only fetch if user data is loaded
     if (!user) return; 
 
-    const fetchMonthData = async () => {
-      // 1. Calculate the start and end of the relevant calendar range
-      const year = currentDate.getFullYear();
-      const month = currentDate.getMonth();
+    setIsLoading(true);
 
-      // Find the first day of the month and its day of the week (0=Sun)
-      const firstOfMonth = new Date(year, month, 1);
-      const startDayOfWeek = firstOfMonth.getDay(); 
-      
-      // Calculate the start date of the visible calendar (may be in the previous month)
-      const startDate = new Date(firstOfMonth);
-      startDate.setDate(firstOfMonth.getDate() - startDayOfWeek);
-      
-      // Calculate the end date of the visible calendar (6 weeks from the start)
-      const endDate = new Date(startDate);
-      endDate.setDate(startDate.getDate() + 42); // 6 weeks * 7 days
+    // 1. Calculate the start and end of the relevant calendar range
+    const year = currentDate.getFullYear();
+    const month = currentDate.getMonth();
 
-      // Format dates for API query (UTC midnight)
-      const startDateStr = startDate.toISOString().split('T')[0] + 'T00:00:00.000Z';
-      const endDateStr = endDate.toISOString().split('T')[0] + 'T00:00:00.000Z';
+    // Find the first day of the month and its day of the week (0=Sun)
+    const firstOfMonth = new Date(year, month, 1);
+    const startDayOfWeek = firstOfMonth.getDay(); 
+    
+    // Calculate the start date of the visible calendar (may be in the previous month)
+    const startDate = new Date(firstOfMonth);
+    startDate.setDate(firstOfMonth.getDate() - startDayOfWeek);
+    
+    // Calculate the end date of the visible calendar (6 weeks from the start)
+    const endDate = new Date(startDate);
+    endDate.setDate(startDate.getDate() + 42); // 6 weeks * 7 days
 
-      setIsLoading(true);
+    // Format dates for API query (UTC midnight)
+    const startDateStr = startDate.toISOString().split('T')[0] + 'T00:00:00.000Z';
+    const endDateStr = endDate.toISOString().split('T')[0] + 'T00:00:00.000Z';
+
+    const fetchAllData = async () => {
       try {
-        const res = await fetch(`/api/roster/fetch-month?startDate=${startDateStr}&endDate=${endDateStr}`);
-        const result = await res.json();
+        const rosterPromise = fetch(`/api/roster/fetch-month?startDate=${startDateStr}&endDate=${endDateStr}`).then(res => res.json());
+        
+        const approvedLeavesPromise = user?.account_type === "Non-Planner"
+          ? fetch(`/api/leave/fetch-approved-user?userId=${user.user_id}&startDate=${startDateStr}&endDate=${endDateStr}`).then(res => res.json())
+          : Promise.resolve({ success: true, data: [] }); // Resolve immediately if not Non-Planner
 
-        if (result.success) {
-          // Update the rosterData with the fetched map
-          setRosterData(result.data);
+        const allApprovedLeavesPromise = user?.account_type === "Planner"
+          ? fetch(`/api/leave/fetch-approved-all?startDate=${startDateStr}&endDate=${endDateStr}`).then(res => res.json())
+          : Promise.resolve({ success: true, data: {} }); // Resolve immediately if not Planner
+
+        const [rosterResult, approvedLeavesResult, allApprovedLeavesResult] = await Promise.all([
+          rosterPromise,
+          approvedLeavesPromise,
+          allApprovedLeavesPromise
+        ]);
+
+        if (rosterResult.success) {
+          setRosterData(rosterResult.data);
         } else {
-          console.error("Month Fetch Failed:", result.message);
+          console.error("Month Fetch Failed:", rosterResult.message);
         }
+
+        if (approvedLeavesResult.success) {
+          setApprovedLeaveDates(approvedLeavesResult.data);
+        } else {
+          console.error("Fetch Approved Leaves Failed:", approvedLeavesResult.message);
+        }
+
+        if (allApprovedLeavesResult.success) {
+          setAllApprovedLeaves(allApprovedLeavesResult.data);
+        } else {
+          console.error("Fetch All Approved Leaves Failed:", allApprovedLeavesResult.message);
+        }
+
       } catch (error) {
-        console.error("Error during month fetch:", error);
+        console.error("Error during data fetch:", error);
       } finally {
         setIsLoading(false);
       }
     };
 
-    fetchMonthData();
+    fetchAllData();
 
   }, [currentDate, user]); // Re-run when month changes or user loads
 
@@ -113,10 +144,12 @@ export default function RosterPage() {
    */
   const handleDayClick = (dateKey: string) => {
     const existingData = rosterData[dateKey];
+    const leavesOnDay = allApprovedLeaves[dateKey] || [];
     const dataForModal: ShiftData = {
         date: dateKey, 
         dayShiftEmployees: existingData?.dayShiftEmployees || [], 
-        nightShiftEmployees: existingData?.nightShiftEmployees || []
+        nightShiftEmployees: existingData?.nightShiftEmployees || [],
+        leaves: leavesOnDay // Add leaves information here
     };
 
     setSelectedShiftData(dataForModal);
@@ -227,9 +260,19 @@ export default function RosterPage() {
               Generate Roster
             </button>
           )}
+
+          {user.account_type === "Planner" && (
+            <button style={styles.plannerButton} onClick={() => router.push('/pages/leave-requests')}>
+              Leave requests
+            </button>
+          )}
           
           <button style={styles.leaveButton} onClick={() => setIsLeaveModalOpen(true)}>
             Apply Leave
+          </button>
+
+          <button style={styles.leaveButton} onClick={() => setIsLeaveHistoryModalOpen(true)}>
+            Leave Request History
           </button>
 
           <button style={styles.backButton} onClick={() => router.push('/pages/home')}>
@@ -244,6 +287,8 @@ export default function RosterPage() {
           rosterData={rosterData}
           onDayClick={handleDayClick}
           user={user}
+          approvedLeaveDates={approvedLeaveDates}
+          allApprovedLeaves={allApprovedLeaves}
         />
       </div>
 
@@ -275,6 +320,13 @@ export default function RosterPage() {
           onApprove={handleApproveRoster}
         />
       )}
+
+      {isLeaveHistoryModalOpen && (
+        <LeaveHistoryModal
+          onClose={() => setIsLeaveHistoryModalOpen(false)}
+          user={user}
+        />
+      )}
     </div>
   );
 }
@@ -289,9 +341,11 @@ interface CalendarProps {
   rosterData: RosterMap;
   onDayClick: (dateKey: string) => void;
   user: UserData | null;
+  approvedLeaveDates: string[];
+  allApprovedLeaves: Record<string, string[]>;
 }
 
-const CalendarView: React.FC<CalendarProps> = React.memo(({ currentDate, changeMonth, rosterData, onDayClick, user }) => {
+const CalendarView: React.FC<CalendarProps> = React.memo(({ currentDate, changeMonth, rosterData, onDayClick, user, approvedLeaveDates, allApprovedLeaves }) => {
   const month = currentDate.getMonth();
   const year = currentDate.getFullYear();
   const firstDayOfMonth = new Date(year, month, 1).getDay(); // 0 (Sun) to 6 (Sat)
@@ -345,38 +399,50 @@ const CalendarView: React.FC<CalendarProps> = React.memo(({ currentDate, changeM
           const isUserOnShift = isUserOnDayShift || isUserOnNightShift;
 
           const dayText = isUserOnDayShift ? 'You' : dayShift.length;
-          const nightText = isUserOnNightShift ? 'You' : nightShift.length;
-
-          return (
-            <div
-              key={dateKey}
-              style={{
-                ...calStyles.dayCell,
-                cursor: 'pointer',
-                                                backgroundColor: hasShift ? '#2E4034' : '#3b3b3b',
-                                                                border: isToday ? '2px solid #1a73e8' : '1px solid #555' // Highlight today
-                                                              }}                 onClick={() => onDayClick(dateKey)}
-            >
-              <div style={calStyles.dayNumber}>{day}</div>
-              
-              {/* Show shift indicators using fetched data */}
-              {dayShift.length > 0 && (
-                <div style={{...calStyles.shiftIndicator, backgroundColor: isUserOnDayShift ? 'red' : '#34a853'}}>
-                  Day: {dayText}
+                    const nightText = isUserOnNightShift ? 'You' : nightShift.length;
+                    const isUserOnLeave = approvedLeaveDates.includes(dateKey);
+          
+                    return (
+                      <div
+                        key={dateKey}
+                        style={{
+                          ...calStyles.dayCell,
+                          cursor: 'pointer',
+                          backgroundColor: hasShift ? '#2E4034' : '#3b3b3b',
+                          border: isToday ? '2px solid #1a73e8' : '1px solid #555' // Highlight today
+                        }}
+                        onClick={() => onDayClick(dateKey)}
+                      >
+                        <div style={calStyles.dayNumber}>{day}</div>
+                        
+                                                    {isUserOnLeave && (
+                                                      <div style={{...calStyles.shiftIndicator, backgroundColor: '#FFD700', color: 'black'}}>
+                                                        On Leave
+                                                      </div>
+                                                    )}                        
+                                      {user?.account_type === "Planner" && (allApprovedLeaves[dateKey]?.length > 0) && (
+                                        <div style={{...calStyles.shiftIndicator, backgroundColor: '#FFD700', color: 'black'}}>
+                                          Leave: {allApprovedLeaves[dateKey].length}
+                                        </div>
+                                      )}
+                        
+                                      {/* Show shift indicators using fetched data */}
+                                      {dayShift.length > 0 && (
+                                        <div style={{...calStyles.shiftIndicator, backgroundColor: isUserOnDayShift ? 'red' : '#34a853'}}>
+                                          Day: {dayText}
+                                        </div>
+                                      )}                        {nightShift.length > 0 && (
+                          <div style={{...calStyles.shiftIndicator, backgroundColor: isUserOnNightShift ? 'red' : '#8a2be2', marginTop: '3px'}}>
+                            Night: {nightText}
+                          </div>
+                        )}
+                      </div>
+                    );
+                  })}
                 </div>
-              )}
-              {nightShift.length > 0 && (
-                <div style={{...calStyles.shiftIndicator, backgroundColor: isUserOnNightShift ? 'red' : '#8a2be2', marginTop: '3px'}}>
-                  Night: {nightText}
-                </div>
-              )}
-            </div>
-          );
-        })}
-      </div>
-    </div>
-  );
-});
+              </div>
+            );
+          });
 
 // --------------------------------------------------------------------------
 // STYLES (Provided for completeness)
@@ -428,7 +494,7 @@ const styles: Record<string, React.CSSProperties> = {
     cursor: 'pointer',
     fontWeight: 'bold',
     color: 'white',
-    backgroundColor: '#555',
+    backgroundColor: '#4285F4', // Google Blue
   },
   backButton: {
     padding: '10px 20px',

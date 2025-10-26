@@ -5,6 +5,7 @@ interface ShiftData {
     date: string;
     dayShiftEmployees: string[];
     nightShiftEmployees: string[];
+    leaves?: string[]; // Optional: user_ids of people on leave
 }
 
 interface ModalProps {
@@ -36,6 +37,13 @@ const ShiftEditorModal: React.FC<ModalProps> = ({ shiftData, onClose, onSave }) 
             <div style={modalStyles.modal}>
                 <h2 style={modalStyles.header}>Edit Roster for {shiftData.date}</h2>
                 
+                {shiftData.leaves && shiftData.leaves.length > 0 && (
+                    <div style={modalStyles.leavesContainer}>
+                        <h3 style={modalStyles.shiftHeader}>On Leave:</h3>
+                        <p>{shiftData.leaves.join(', ')}</p>
+                    </div>
+                )}
+
                 <div style={modalStyles.shiftsContainer}>
                     <div>
                         <h3 style={modalStyles.shiftHeader}>Day Shift (Add one name per line)</h3>
@@ -93,6 +101,12 @@ const modalStyles: Record<string, React.CSSProperties> = {
         paddingBottom: '15px',
         marginBottom: '20px',
         color: '#1a73e8',
+    },
+    leavesContainer: {
+        marginBottom: '20px',
+        padding: '10px',
+        backgroundColor: 'white',
+        borderRadius: '5px',
     },
     shiftsContainer: {
         display: 'grid',
