@@ -1,19 +1,23 @@
-// app/api/roster/update/route.ts
 import { connectToDatabase } from "../../../../lib/mongodb"; 
-import Roster from "../../../../models/roster"; // <-- Ensure this path is correct
-import User from "../../../../models/users"; // Import the User model
+import Roster from "../../../../models/roster"; 
+import User from "../../../../models/users"; 
 import { NextResponse } from "next/server";
 
-// Define the expected structure of the incoming data
+interface ShiftDetails {
+    Morning: string[];
+    Afternoon: string[];
+    Night: string[];
+}
+
 interface UpdatePayload {
-    date: string; // The date string (e.g., '2025-10-20')
-    dayShiftEmployees: string[];
-    nightShiftEmployees: string[];
+    date: string; 
+    East: ShiftDetails;
+    West: ShiftDetails;
 }
 
 export async function POST(req: Request) {
     try {
-        const { date, dayShiftEmployees, nightShiftEmployees }: UpdatePayload = await req.json();
+        const { date, East, West }: UpdatePayload = await req.json();
 
         if (!date) {
             return NextResponse.json({ success: false, message: "Date is required" }, { status: 400 });
@@ -22,7 +26,13 @@ export async function POST(req: Request) {
         await connectToDatabase();
 
         // --- 1. Validate User IDs ---
-        const allEmployeeIds = [...new Set([...dayShiftEmployees, ...nightShiftEmployees])];
+        const allEmployeeIds = [
+            ...new Set([
+                ...East.Morning, ...East.Afternoon, ...East.Night,
+                ...West.Morning, ...West.Afternoon, ...West.Night,
+            ]),
+        ];
+
         if (allEmployeeIds.length > 0) {
             const existingUsers = await User.find({ user_id: { $in: allEmployeeIds } }).select('user_id');
             const existingUserIds = new Set(existingUsers.map(user => user.user_id));
@@ -37,11 +47,9 @@ export async function POST(req: Request) {
             }
         }
 
-        // --- 2. Prepare Date Range for Query (Crucial for correct date handling) ---
-        // Convert the client's date string (e.g., '2025-10-20') to a UTC date object'
-        // This ensures the date is treated as the start of the day in UTC for querying.
+        // --- 2. Prepare Date Range for Query ---
         const startOfDayUTC = new Date(date + 'T00:00:00.000Z');
-        const endOfDayUTC = new Date(startOfDayUTC.getTime() + (24 * 60 * 60 * 1000)); // Start of next day
+        const endOfDayUTC = new Date(startOfDayUTC.getTime() + (24 * 60 * 60 * 1000)); 
 
         const dateFilter = {
             date: {
@@ -50,34 +58,33 @@ export async function POST(req: Request) {
             }
         };
 
-        // --- 2. CLEAR: Delete all existing shifts for this 24-hour period ---
-        // This simplifies the logic by ensuring no old shifts remain for the day
+        // --- 3. CLEAR: Delete all existing shifts for this 24-hour period ---
         await Roster.deleteMany(dateFilter);
 
-        // --- 3. BUILD NEW SHIFT ASSIGNMENTS (Array of new documents) ---
+        // --- 4. BUILD NEW SHIFT ASSIGNMENTS ---
         const newAssignments = [];
 
-        // Insert Day Shift assignments
-        for (const employeeName of dayShiftEmployees) {
-            // NOTE: You should ideally look up the user_id from the employeeName here
-            // For now, we'll assume the employeeName IS the user_id or a unique identifier.
-            newAssignments.push({
-                user_id: employeeName, 
-                date: startOfDayUTC, // Use the correct UTC date
-                shift_type: 'Day Shift'
-            });
-        }
+        const locations = { East, West };
+        for (const locationKey of Object.keys(locations)) {
+            const location = locationKey as keyof typeof locations;
+            const shiftTypes = locations[location];
 
-        // Insert Night Shift assignments
-        for (const employeeName of nightShiftEmployees) {
-            newAssignments.push({
-                user_id: employeeName, 
-                date: startOfDayUTC, // Use the correct UTC date
-                shift_type: 'Night Shift'
-            });
+            for (const shiftTypeKey of Object.keys(shiftTypes)) {
+                const shiftType = shiftTypeKey as keyof ShiftDetails;
+                const employees = shiftTypes[shiftType];
+
+                for (const employeeId of employees) {
+                    newAssignments.push({
+                        user_id: employeeId, 
+                        date: startOfDayUTC, 
+                        shift_type: shiftType, 
+                        location: location,
+                    });
+                }
+            }
         }
         
-        // --- 4. INSERT: Insert all new assignments simultaneously ---
+        // --- 5. INSERT: Insert all new assignments simultaneously ---
         if (newAssignments.length > 0) {
             await Roster.insertMany(newAssignments);
         }

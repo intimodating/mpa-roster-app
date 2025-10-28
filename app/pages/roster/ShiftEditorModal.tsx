@@ -1,10 +1,15 @@
-// app/pages/roster/ShiftEditorModal.tsx
 import React, { useState } from 'react';
+
+interface ShiftDetails {
+    Morning: string[];
+    Afternoon: string[];
+    Night: string[];
+}
 
 interface ShiftData {
     date: string;
-    dayShiftEmployees: string[];
-    nightShiftEmployees: string[];
+    East: ShiftDetails;
+    West: ShiftDetails;
     leaves?: string[]; // Optional: user_ids of people on leave
 }
 
@@ -15,19 +20,43 @@ interface ModalProps {
 }
 
 const ShiftEditorModal: React.FC<ModalProps> = ({ shiftData, onClose, onSave }) => {
-    // Convert arrays back to strings (one name per line) for editing
-    const [dayShiftText, setDayShiftText] = useState(shiftData.dayShiftEmployees.join('\n'));
-    const [nightShiftText, setNightShiftText] = useState(shiftData.nightShiftEmployees.join('\n'));
+    const [activeLocation, setActiveLocation] = useState<'East' | 'West'>('East');
+    const [shiftTexts, setShiftTexts] = useState({
+        East: {
+            Morning: shiftData.East.Morning.join('\n'),
+            Afternoon: shiftData.East.Afternoon.join('\n'),
+            Night: shiftData.East.Night.join('\n'),
+        },
+        West: {
+            Morning: shiftData.West.Morning.join('\n'),
+            Afternoon: shiftData.West.Afternoon.join('\n'),
+            Night: shiftData.West.Night.join('\n'),
+        },
+    });
+
+    const handleTextChange = (location: 'East' | 'West', shiftType: keyof ShiftDetails, text: string) => {
+        setShiftTexts(prev => ({
+            ...prev,
+            [location]: {
+                ...prev[location],
+                [shiftType]: text,
+            },
+        }));
+    };
     
     const handleSave = () => {
-        // Convert text back to arrays, filtering out empty lines
-        const newDayShift = dayShiftText.split('\n').map(s => s.trim()).filter(s => s.length > 0);
-        const newNightShift = nightShiftText.split('\n').map(s => s.trim()).filter(s => s.length > 0);
-
         const updatedData: ShiftData = {
             ...shiftData,
-            dayShiftEmployees: newDayShift,
-            nightShiftEmployees: newNightShift,
+            East: {
+                Morning: shiftTexts.East.Morning.split('\n').map(s => s.trim()).filter(s => s.length > 0),
+                Afternoon: shiftTexts.East.Afternoon.split('\n').map(s => s.trim()).filter(s => s.length > 0),
+                Night: shiftTexts.East.Night.split('\n').map(s => s.trim()).filter(s => s.length > 0),
+            },
+            West: {
+                Morning: shiftTexts.West.Morning.split('\n').map(s => s.trim()).filter(s => s.length > 0),
+                Afternoon: shiftTexts.West.Afternoon.split('\n').map(s => s.trim()).filter(s => s.length > 0),
+                Night: shiftTexts.West.Night.split('\n').map(s => s.trim()).filter(s => s.length > 0),
+            },
         };
         onSave(updatedData);
     };
@@ -44,23 +73,47 @@ const ShiftEditorModal: React.FC<ModalProps> = ({ shiftData, onClose, onSave }) 
                     </div>
                 )}
 
+                <div style={modalStyles.tabsContainer}>
+                    <button
+                        style={{ ...modalStyles.tabButton, ...(activeLocation === 'East' ? modalStyles.activeTab : {}) }}
+                        onClick={() => setActiveLocation('East')}
+                    >
+                        East
+                    </button>
+                    <button
+                        style={{ ...modalStyles.tabButton, ...(activeLocation === 'West' ? modalStyles.activeTab : {}) }}
+                        onClick={() => setActiveLocation('West')}
+                    >
+                        West
+                    </button>
+                </div>
+
                 <div style={modalStyles.shiftsContainer}>
                     <div>
-                        <h3 style={modalStyles.shiftHeader}>Day Shift (Add one name per line)</h3>
+                        <h3 style={modalStyles.shiftHeader}>Morning Shift ({activeLocation})</h3>
                         <textarea
-                            value={dayShiftText}
-                            onChange={(e) => setDayShiftText(e.target.value)}
+                            value={shiftTexts[activeLocation].Morning}
+                            onChange={(e) => handleTextChange(activeLocation, 'Morning', e.target.value)}
                             style={modalStyles.textarea}
-                            rows={6}
+                            rows={4}
                         />
                     </div>
                     <div>
-                        <h3 style={modalStyles.shiftHeader}>Night Shift (Add one name per line)</h3>
+                        <h3 style={modalStyles.shiftHeader}>Afternoon Shift ({activeLocation})</h3>
                         <textarea
-                            value={nightShiftText}
-                            onChange={(e) => setNightShiftText(e.target.value)}
+                            value={shiftTexts[activeLocation].Afternoon}
+                            onChange={(e) => handleTextChange(activeLocation, 'Afternoon', e.target.value)}
                             style={modalStyles.textarea}
-                            rows={6}
+                            rows={4}
+                        />
+                    </div>
+                    <div>
+                        <h3 style={modalStyles.shiftHeader}>Night Shift ({activeLocation})</h3>
+                        <textarea
+                            value={shiftTexts[activeLocation].Night}
+                            onChange={(e) => handleTextChange(activeLocation, 'Night', e.target.value)}
+                            style={modalStyles.textarea}
+                            rows={4}
                         />
                     </div>
                 </div>
@@ -88,16 +141,19 @@ const modalStyles: Record<string, React.CSSProperties> = {
         zIndex: 1000,
     },
     modal: {
-        backgroundColor: 'white',
+        backgroundColor: '#2c2c2c',
+        color: '#fff',
         padding: '30px',
         borderRadius: '10px',
         width: '90%',
-        maxWidth: '700px',
+        maxWidth: '800px',
+        maxHeight: '90vh',
+        overflowY: 'auto',
         boxShadow: '0 5px 15px rgba(0, 0, 0, 0.3)',
         zIndex: 1001,
     },
     header: {
-        borderBottom: '1px solid #eee',
+        borderBottom: '1px solid #555',
         paddingBottom: '15px',
         marginBottom: '20px',
         color: '#1a73e8',
@@ -105,24 +161,27 @@ const modalStyles: Record<string, React.CSSProperties> = {
     leavesContainer: {
         marginBottom: '20px',
         padding: '10px',
-        backgroundColor: 'white',
+        backgroundColor: '#3b3b3b',
         borderRadius: '5px',
     },
     shiftsContainer: {
         display: 'grid',
-        gridTemplateColumns: '1fr 1fr',
+        gridTemplateColumns: '1fr',
         gap: '20px',
+        marginTop: '20px',
     },
     shiftHeader: {
         fontSize: '1.1em',
         marginBottom: '10px',
-        color: '#555',
+        color: '#fff',
     },
     textarea: {
         width: '100%',
         padding: '10px',
         borderRadius: '5px',
-        border: '1px solid #ccc',
+        border: '1px solid #555',
+        backgroundColor: '#3b3b3b',
+        color: '#fff',
         resize: 'vertical',
         boxSizing: 'border-box',
     },
@@ -146,6 +205,26 @@ const modalStyles: Record<string, React.CSSProperties> = {
         border: '1px solid #ccc',
         borderRadius: '5px',
         cursor: 'pointer',
+    },
+    tabsContainer: {
+        display: 'flex',
+        marginBottom: '20px',
+        borderBottom: '1px solid #555',
+    },
+    tabButton: {
+        padding: '10px 20px',
+        border: 'none',
+        backgroundColor: '#3b3b3b',
+        color: '#fff',
+        cursor: 'pointer',
+        fontSize: '1em',
+        borderTopLeftRadius: '8px',
+        borderTopRightRadius: '8px',
+        transition: 'background-color 0.3s ease',
+    },
+    activeTab: {
+        backgroundColor: '#555',
+        fontWeight: 'bold',
     },
 };
 

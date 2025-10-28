@@ -4,8 +4,17 @@ import { connectToDatabase } from "../../../../lib/mongodb";
 import Roster from "../../../../models/roster";
 import { NextResponse } from "next/server";
 
+interface ShiftDetails {
+    Morning: string[];
+    Afternoon: string[];
+    Night: string[];
+}
+
 interface ApprovePayload {
-    roster: Record<string, { dayShift: string[], nightShift: string[] }>;
+    roster: Record<string, {
+        East: ShiftDetails;
+        West: ShiftDetails;
+    }>;
 }
 
 export async function POST(req: Request) {
@@ -34,22 +43,21 @@ export async function POST(req: Request) {
             await Roster.deleteMany(dateFilter);
 
             const newAssignments = [];
-            const { dayShift, nightShift } = roster[date];
+            const locations = ['East', 'West'];
+            const shiftTypes = ['Morning', 'Afternoon', 'Night'];
 
-            for (const employeeName of dayShift) {
-                newAssignments.push({
-                    user_id: employeeName,
-                    date: startOfDayUTC,
-                    shift_type: 'Day Shift'
-                });
-            }
-
-            for (const employeeName of nightShift) {
-                newAssignments.push({
-                    user_id: employeeName,
-                    date: startOfDayUTC,
-                    shift_type: 'Night Shift'
-                });
+            for (const location of locations) {
+                for (const shiftType of shiftTypes) {
+                    const employees = roster[date][location as keyof typeof roster[typeof date]][shiftType as keyof ShiftDetails];
+                    for (const employeeName of employees) {
+                        newAssignments.push({
+                            user_id: employeeName,
+                            date: startOfDayUTC,
+                            shift_type: shiftType,
+                            location: location,
+                        });
+                    }
+                }
             }
 
             if (newAssignments.length > 0) {

@@ -1,4 +1,3 @@
-// app/pages/roster/page.tsx
 "use client";
 import React, { useState, useEffect, useMemo } from 'react';
 import { useRouter } from 'next/navigation';
@@ -17,10 +16,16 @@ interface UserData {
   account_type: "Planner" | "Non-Planner" | string;
 }
 
+interface ShiftDetails {
+  Morning: string[];
+  Afternoon: string[];
+  Night: string[];
+}
+
 interface ShiftData {
     date: string; // YYYY-MM-DD
-    dayShiftEmployees: string[];
-    nightShiftEmployees: string[];
+    East: ShiftDetails;
+    West: ShiftDetails;
     leaves?: string[]; // Optional: user_ids of people on leave
 }
 
@@ -147,8 +152,8 @@ export default function RosterPage() {
     const leavesOnDay = allApprovedLeaves[dateKey] || [];
     const dataForModal: ShiftData = {
         date: dateKey, 
-        dayShiftEmployees: existingData?.dayShiftEmployees || [], 
-        nightShiftEmployees: existingData?.nightShiftEmployees || [],
+        East: existingData?.East || { Morning: [], Afternoon: [], Night: [] },
+        West: existingData?.West || { Morning: [], Afternoon: [], Night: [] },
         leaves: leavesOnDay // Add leaves information here
     };
 
@@ -163,11 +168,12 @@ export default function RosterPage() {
 
   /**
    * Saves changes via the API and updates local state upon success.
+   * This function will need to be updated to handle the new roster structure.
+   * For now, it's a placeholder.
    */
   const handleSaveShifts = async (updatedData: ShiftData) => {
     setIsLoading(true);
     try {
-      // Call the update API route
       const res = await fetch('/api/roster/update', {
           method: 'POST',
           headers: { 'Content-Type': 'application/json' },
@@ -181,10 +187,7 @@ export default function RosterPage() {
           return;
       }
 
-      // Update the local state (rosterData) with the newly saved data
-      // This is crucial for instantly reflecting changes on the calendar grid
       setRosterData(prev => ({ ...prev, [updatedData.date]: updatedData }));
-      
       setIsModalOpen(false);
       
     } catch (error) {
@@ -195,7 +198,7 @@ export default function RosterPage() {
     }
   };
 
-  const handleApproveRoster = async (roster: Record<string, { dayShift: string[], nightShift: string[] }>) => {
+  const handleApproveRoster = async (roster: RosterMap) => {
     setIsLoading(true);
     try {
       console.log("Roster object being sent to approve API:", roster);
@@ -218,9 +221,9 @@ export default function RosterPage() {
         const newRosterData: RosterMap = {};
         for (const date in roster) {
           newRosterData[date] = {
-            date,
-            dayShiftEmployees: roster[date].dayShift,
-            nightShiftEmployees: roster[date].nightShift,
+            East: roster[date].East,
+            West: roster[date].West,
+            date: date,
           };
         }
         
@@ -389,60 +392,74 @@ const CalendarView: React.FC<CalendarProps> = React.memo(({ currentDate, changeM
           const mm = String(date.getMonth() + 1).padStart(2, '0');
           const dd = String(date.getDate()).padStart(2, '0');
           const dateKey = `${yyyy}-${mm}-${dd}`;
-          const dayShift = rosterData[dateKey]?.dayShiftEmployees || [];
-          const nightShift = rosterData[dateKey]?.nightShiftEmployees || [];
-          const hasShift = dayShift.length > 0 || nightShift.length > 0;
+          
+          const shiftsEast = rosterData[dateKey]?.East || { Morning: [], Afternoon: [], Night: [] };
+          const shiftsWest = rosterData[dateKey]?.West || { Morning: [], Afternoon: [], Night: [] };
+
+          const totalMorningShift = shiftsEast.Morning.length + shiftsWest.Morning.length;
+          const totalAfternoonShift = shiftsEast.Afternoon.length + shiftsWest.Afternoon.length;
+          const totalNightShift = shiftsEast.Night.length + shiftsWest.Night.length;
+
+          const hasShift = totalMorningShift > 0 || totalAfternoonShift > 0 || totalNightShift > 0;
           const isToday = dateKey === todayDateString;
 
-          const isUserOnDayShift = user?.account_type === 'Non-Planner' && dayShift.map(id => id.toUpperCase()).includes(user.user_id.toUpperCase());
-          const isUserOnNightShift = user?.account_type === 'Non-Planner' && nightShift.map(id => id.toUpperCase()).includes(user.user_id.toUpperCase());
-          const isUserOnShift = isUserOnDayShift || isUserOnNightShift;
+          const isUserOnMorningShift = user?.account_type === 'Non-Planner' && (shiftsEast.Morning.includes(user.user_id) || shiftsWest.Morning.includes(user.user_id));
+          const isUserOnAfternoonShift = user?.account_type === 'Non-Planner' && (shiftsEast.Afternoon.includes(user.user_id) || shiftsWest.Afternoon.includes(user.user_id));
+          const isUserOnNightShift = user?.account_type === 'Non-Planner' && (shiftsEast.Night.includes(user.user_id) || shiftsWest.Night.includes(user.user_id));
+          const isUserOnShift = isUserOnMorningShift || isUserOnAfternoonShift || isUserOnNightShift;
 
-          const dayText = isUserOnDayShift ? 'You' : dayShift.length;
-                    const nightText = isUserOnNightShift ? 'You' : nightShift.length;
-                    const isUserOnLeave = approvedLeaveDates.includes(dateKey);
+          const morningText = isUserOnMorningShift ? 'You' : totalMorningShift;
+          const afternoonText = isUserOnAfternoonShift ? 'You' : totalAfternoonShift;
+          const nightText = isUserOnNightShift ? 'You' : totalNightShift;
+          const isUserOnLeave = approvedLeaveDates.includes(dateKey);
           
-                    return (
-                      <div
-                        key={dateKey}
-                        style={{
-                          ...calStyles.dayCell,
-                          cursor: 'pointer',
-                          backgroundColor: hasShift ? '#2E4034' : '#3b3b3b',
-                          border: isToday ? '2px solid #1a73e8' : '1px solid #555' // Highlight today
-                        }}
-                        onClick={() => onDayClick(dateKey)}
-                      >
-                        <div style={calStyles.dayNumber}>{day}</div>
-                        
-                                                    {isUserOnLeave && (
-                                                      <div style={{...calStyles.shiftIndicator, backgroundColor: '#FFD700', color: 'black'}}>
-                                                        On Leave
-                                                      </div>
-                                                    )}                        
-                                      {user?.account_type === "Planner" && (allApprovedLeaves[dateKey]?.length > 0) && (
-                                        <div style={{...calStyles.shiftIndicator, backgroundColor: '#FFD700', color: 'black'}}>
-                                          Leave: {allApprovedLeaves[dateKey].length}
-                                        </div>
-                                      )}
-                        
-                                      {/* Show shift indicators using fetched data */}
-                                      {dayShift.length > 0 && (
-                                        <div style={{...calStyles.shiftIndicator, backgroundColor: isUserOnDayShift ? 'red' : '#34a853'}}>
-                                          Day: {dayText}
-                                        </div>
-                                      )}                        {nightShift.length > 0 && (
-                          <div style={{...calStyles.shiftIndicator, backgroundColor: isUserOnNightShift ? 'red' : '#8a2be2', marginTop: '3px'}}>
-                            Night: {nightText}
-                          </div>
-                        )}
-                      </div>
-                    );
-                  })}
+          return (
+            <div
+              key={dateKey}
+              style={{
+                ...calStyles.dayCell,
+                cursor: 'pointer',
+                backgroundColor: hasShift ? '#2E4034' : '#3b3b3b',
+                border: isToday ? '2px solid #1a73e8' : '1px solid #555' // Highlight today
+              }}
+              onClick={() => onDayClick(dateKey)}
+            >
+              <div style={calStyles.dayNumber}>{day}</div>
+              
+              {isUserOnLeave && (
+                <div style={{...calStyles.shiftIndicator, backgroundColor: '#FFD700', color: 'black'}}>
+                  On Leave
                 </div>
-              </div>
-            );
-          });
+              )}                        
+              {user?.account_type === "Planner" && (allApprovedLeaves[dateKey]?.length > 0) && (
+                <div style={{...calStyles.shiftIndicator, backgroundColor: '#FFD700', color: 'black'}}>
+                  Leave: {allApprovedLeaves[dateKey].length}
+                </div>
+              )}
+              
+              {/* Show shift indicators using fetched data */}
+              {totalMorningShift > 0 && (
+                <div style={{...calStyles.shiftIndicator, backgroundColor: isUserOnMorningShift ? 'red' : '#34a853'}}>
+                  Morning: {morningText}
+                </div>
+              )} 
+              {totalAfternoonShift > 0 && (
+                <div style={{...calStyles.shiftIndicator, backgroundColor: isUserOnAfternoonShift ? 'red' : '#4285F4', marginTop: '3px'}}>
+                  Afternoon: {afternoonText}
+                </div>
+              )}
+              {totalNightShift > 0 && (
+                <div style={{...calStyles.shiftIndicator, backgroundColor: isUserOnNightShift ? 'red' : '#8a2be2', marginTop: '3px'}}>
+                  Night: {nightText}
+                </div>
+              )}
+            </div>
+          );
+        })}
+      </div>
+    </div>
+  );
+});
 
 // --------------------------------------------------------------------------
 // STYLES (Provided for completeness)
