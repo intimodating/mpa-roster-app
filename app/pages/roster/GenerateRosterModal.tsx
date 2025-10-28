@@ -8,20 +8,42 @@ interface GenerateRosterModalProps {
   onApprove: (roster: any) => void;
 }
 
-type RosterPreview = Record<string, { dayShift: string[], nightShift: string[] }>;
+type RosterPreview = Record<string, {
+  East: { Morning: string[]; Afternoon: string[]; Night: string[]; };
+  West: { Morning: string[]; Afternoon: string[]; Night: string[]; };
+}>;
+
+type WorkerRequirements = {
+  [location: string]: { // "East" or "West"
+    [proficiencyGrade: string]: number; // "1", "2", ..., "9" : count
+  };
+};
+
+const initialWorkerRequirements: WorkerRequirements = {
+  East: { '1': 1, '2': 1, '3': 1, '4': 0, '5': 0, '6': 0, '7': 0, '8': 0, '9': 0 },
+  West: { '1': 1, '2': 1, '3': 1, '4': 0, '5': 0, '6': 0, '7': 0, '8': 0, '9': 0 },
+};
 
 const GenerateRosterModal: React.FC<GenerateRosterModalProps> = ({ onClose, onApprove }) => {
   const [startDate, setStartDate] = useState('');
   const [endDate, setEndDate] = useState('');
-  const [gradeCounts, setGradeCounts] = useState<Record<string, number>>({
-    '1': 1, '2': 1, '3': 1, '4': 0, '5': 0, '6': 0, '7': 0, '8': 0, '9': 0
-  });
+  const [workerRequirements, setWorkerRequirements] = useState<WorkerRequirements>(initialWorkerRequirements);
   const [rosterPreview, setRosterPreview] = useState<RosterPreview | null>(null);
   const [isLoading, setIsLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
+  const [activeLocation, setActiveLocation] = useState<'East' | 'West'>('East');
+
+  const handleGradeChange = (location: string, grade: string, value: number) => {
+    setWorkerRequirements(prev => ({
+      ...prev,
+      [location]: {
+        ...prev[location],
+        [grade]: value,
+      },
+    }));
+  };
 
   const handleGenerate = async () => {
-    console.log("Sending to backend:", { startDate, endDate });
     if (!startDate || !endDate) {
       setError('Please select a start and end date.');
       return;
@@ -32,7 +54,7 @@ const GenerateRosterModal: React.FC<GenerateRosterModalProps> = ({ onClose, onAp
       const res = await fetch('/api/roster/generate', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ startDate, endDate, gradeCounts }),
+        body: JSON.stringify({ startDate, endDate, workerRequirements }),
       });
       const data = await res.json();
       if (data.logs) {
@@ -61,6 +83,27 @@ const GenerateRosterModal: React.FC<GenerateRosterModalProps> = ({ onClose, onAp
     }
   };
 
+  const renderLocationRequirements = (location: 'East' | 'West') => {
+    const grades = ['1', '2', '3', '4', '5', '6', '7', '8', '9'];
+
+    return (
+      <div style={styles.gradesContainer}>
+        {grades.map(grade => (
+          <div key={grade} style={styles.gradeInput}>
+            <label>Grade {grade}:</label>
+            <input
+              type="number"
+              min="0"
+              value={workerRequirements[location][grade]}
+              onChange={(e) => handleGradeChange(location, grade, parseInt(e.target.value, 10) || 0)}
+              style={styles.gradeInputField}
+            />
+          </div>
+        ))}
+      </div>
+    );
+  };
+
   return (
     <div style={styles.overlay}>
       <div style={styles.modal}>
@@ -79,21 +122,27 @@ const GenerateRosterModal: React.FC<GenerateRosterModalProps> = ({ onClose, onAp
               <label>End Date:</label>
               <input type="date" value={endDate} onChange={(e) => setEndDate(e.target.value)} style={styles.input} />
             </div>
-            <div style={styles.gradesContainer}>
-              <h3>Required Workers per Shift</h3>
-              {Object.keys(gradeCounts).map(grade => (
-                <div key={grade} style={styles.gradeInput}>
-                  <label>Grade {grade}:</label>
-                  <input
-                    type="number"
-                    min="0"
-                    value={gradeCounts[grade]}
-                    onChange={(e) => setGradeCounts(prev => ({ ...prev, [grade]: parseInt(e.target.value, 10) || 0 }))}
-                    style={styles.gradeInputField}
-                  />
-                </div>
-              ))}
+
+            <div style={styles.tabsContainer}>
+              <button
+                style={{ ...styles.tabButton, ...(activeLocation === 'East' ? styles.activeTab : {}) }}
+                onClick={() => setActiveLocation('East')}
+              >
+                East
+              </button>
+              <button
+                style={{ ...styles.tabButton, ...(activeLocation === 'West' ? styles.activeTab : {}) }}
+                onClick={() => setActiveLocation('West')}
+              >
+                West
+              </button>
             </div>
+
+            <div style={styles.locationContent}>
+              <h3>Required Workers for {activeLocation} Location</h3>
+              {renderLocationRequirements(activeLocation)}
+            </div>
+
             <div style={styles.buttonContainer}>
               <button onClick={handleGenerate} style={styles.generateButton}>Generate</button>
               <button onClick={onClose} style={styles.closeButton}>Close</button>
@@ -108,16 +157,24 @@ const GenerateRosterModal: React.FC<GenerateRosterModalProps> = ({ onClose, onAp
               <thead>
                 <tr>
                   <th style={styles.th}>Date</th>
-                  <th style={styles.th}>Day Shift</th>
-                  <th style={styles.th}>Night Shift</th>
+                  <th style={styles.th}>East - Morning</th>
+                  <th style={styles.th}>East - Afternoon</th>
+                  <th style={styles.th}>East - Night</th>
+                  <th style={styles.th}>West - Morning</th>
+                  <th style={styles.th}>West - Afternoon</th>
+                  <th style={styles.th}>West - Night</th>
                 </tr>
               </thead>
               <tbody>
                 {Object.entries(rosterPreview).map(([date, shifts]) => (
                   <tr key={date}>
                     <td style={styles.td}>{date}</td>
-                    <td style={styles.td}>{shifts.dayShift.join(', ')}</td>
-                    <td style={styles.td}>{shifts.nightShift.join(', ')}</td>
+                    <td style={styles.td}>{shifts.East.Morning.join(', ')}</td>
+                    <td style={styles.td}>{shifts.East.Afternoon.join(', ')}</td>
+                    <td style={styles.td}>{shifts.East.Night.join(', ')}</td>
+                    <td style={styles.td}>{shifts.West.Morning.join(', ')}</td>
+                    <td style={styles.td}>{shifts.West.Afternoon.join(', ')}</td>
+                    <td style={styles.td}>{shifts.West.Night.join(', ')}</td>
                   </tr>
                 ))}
               </tbody>
@@ -170,24 +227,29 @@ const styles: Record<string, React.CSSProperties> = {
         fontSize: '1em',
       },
       gradesContainer: {
-        marginTop: '30px',
-        borderTop: '1px solid #555',
-        paddingTop: '20px',
+        display: 'grid',
+        gridTemplateColumns: 'repeat(auto-fit, minmax(120px, 1fr))',
+        gap: '10px',
+        marginTop: '15px',
+        padding: '10px',
+        border: '1px solid #444',
+        borderRadius: '8px',
       },
       gradeInput: {
         display: 'flex',
-        justifyContent: 'space-between',
+        flexDirection: 'column',
         alignItems: 'center',
-        marginBottom: '15px',
+        marginBottom: '5px',
       },
       gradeInputField: {
-        width: '70px',
-        padding: '8px',
-        borderRadius: '8px',
-        border: '1px solid #555',
-        backgroundColor: '#3b3b3b',
+        width: '60px',
+        padding: '6px',
+        borderRadius: '6px',
+        border: '1px solid #666',
+        backgroundColor: '#444',
         color: '#fff',
         textAlign: 'center',
+        marginTop: '5px',
       },
       buttonContainer: {
         marginTop: '30px',
@@ -198,7 +260,7 @@ const styles: Record<string, React.CSSProperties> = {
       generateButton: {
         padding: '12px 24px',
         border: 'none',
-        borderRadius: '8px',
+                borderRadius: '8px',
         cursor: 'pointer',
         fontWeight: 'bold',
         color: 'white',
@@ -239,6 +301,36 @@ const styles: Record<string, React.CSSProperties> = {
       td: {
         border: '1px solid #555',
         padding: '12px',
+      },
+      tabsContainer: {
+        display: 'flex',
+        marginBottom: '20px',
+        borderBottom: '1px solid #555',
+      },
+      tabButton: {
+        padding: '10px 20px',
+        border: 'none',
+        backgroundColor: '#3b3b3b',
+        color: '#fff',
+        cursor: 'pointer',
+        fontSize: '1em',
+        borderTopLeftRadius: '8px',
+        borderTopRightRadius: '8px',
+        transition: 'background-color 0.3s ease',
+      },
+      activeTab: {
+        backgroundColor: '#555',
+        fontWeight: 'bold',
+      },
+      locationContent: {
+        padding: '15px 0',
+      },
+      shiftContainer: {
+        marginBottom: '20px',
+        padding: '15px',
+        border: '1px solid #555',
+        borderRadius: '8px',
+        backgroundColor: '#333',
       }
 };
 

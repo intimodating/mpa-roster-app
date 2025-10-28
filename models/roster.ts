@@ -19,7 +19,14 @@ const RosterSchema = new mongoose.Schema({
     // The type of shift
     shift_type: {
         type: String,
-        enum: ['Day Shift', 'Night Shift', 'Leave'], // Use consistent names
+        enum: ['Morning', 'Afternoon', 'Night', 'Leave'], // Updated shift types
+        required: true,
+    },
+
+    // The location of the shift
+    location: {
+        type: String,
+        enum: ['East', 'West'],
         required: true,
     },
 

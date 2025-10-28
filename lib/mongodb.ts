@@ -1,10 +1,10 @@
 // lib/mongodb.ts
 import mongoose from "mongoose";
 
-const MONGO_URI = process.env.MONGO_URI; // <-- make sure this matches your .env.local
+const MONGO_URI = process.env.MONGODB_URI; // <-- make sure this matches your .env.local
 
 if (!MONGO_URI) {
-  throw new Error("Please define MONGO_URI in .env.local");
+  throw new Error("Please define MONGODB_URI in .env.local");
 }
 
 export async function connectToDatabase() {
