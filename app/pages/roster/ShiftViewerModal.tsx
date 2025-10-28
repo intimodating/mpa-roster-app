@@ -1,12 +1,18 @@
 
 // app/pages/roster/ShiftViewerModal.tsx
 "use client";
-import React from 'react';
+import React, { useState } from 'react';
+
+interface ShiftDetails {
+    Morning: string[];
+    Afternoon: string[];
+    Night: string[];
+}
 
 interface ShiftData {
     date: string;
-    dayShiftEmployees: string[];
-    nightShiftEmployees: string[];
+    East: ShiftDetails;
+    West: ShiftDetails;
     leaves?: string[]; // Optional: user_ids of people on leave
 }
 
@@ -16,6 +22,10 @@ interface Props {
 }
 
 const ShiftViewerModal: React.FC<Props> = ({ shiftData, onClose }) => {
+    const [activeLocation, setActiveLocation] = useState<'East' | 'West'>('East');
+
+    const currentShiftDetails = shiftData[activeLocation];
+
     return (
         <div style={styles.overlay}>
             <div style={styles.modal}>
@@ -30,17 +40,47 @@ const ShiftViewerModal: React.FC<Props> = ({ shiftData, onClose }) => {
                     </div>
                 )}
 
+                <div style={styles.tabsContainer}>
+                    <button
+                        style={{ ...styles.tabButton, ...(activeLocation === 'East' ? styles.activeTab : {}) }}
+                        onClick={() => setActiveLocation('East')}
+                    >
+                        East
+                    </button>
+                    <button
+                        style={{ ...styles.tabButton, ...(activeLocation === 'West' ? styles.activeTab : {}) }}
+                        onClick={() => setActiveLocation('West')}
+                    >
+                        West
+                    </button>
+                </div>
+
                 <div style={styles.shiftContainer}>
                     <div style={styles.shiftColumn}>
-                        <h3 style={styles.shiftTitle}>Day Shift</h3>
+                        <h3 style={styles.shiftTitle}>Morning Shift ({activeLocation})</h3>
                         <ul style={styles.employeeList}>
-                            {shiftData.dayShiftEmployees.map(emp => <li key={emp} style={styles.employeeItem}>{emp}</li>)}
+                            {currentShiftDetails.Morning.length > 0 ?
+                                currentShiftDetails.Morning.map(emp => <li key={emp} style={styles.employeeItem}>{emp}</li>) :
+                                <li style={styles.employeeItem}>No assignments</li>
+                            }
                         </ul>
                     </div>
                     <div style={styles.shiftColumn}>
-                        <h3 style={styles.shiftTitle}>Night Shift</h3>
+                        <h3 style={styles.shiftTitle}>Afternoon Shift ({activeLocation})</h3>
                         <ul style={styles.employeeList}>
-                            {shiftData.nightShiftEmployees.map(emp => <li key={emp} style={styles.employeeItem}>{emp}</li>)}
+                            {currentShiftDetails.Afternoon.length > 0 ?
+                                currentShiftDetails.Afternoon.map(emp => <li key={emp} style={styles.employeeItem}>{emp}</li>) :
+                                <li style={styles.employeeItem}>No assignments</li>
+                            }
+                        </ul>
+                    </div>
+                    <div style={styles.shiftColumn}>
+                        <h3 style={styles.shiftTitle}>Night Shift ({activeLocation})</h3>
+                        <ul style={styles.employeeList}>
+                            {currentShiftDetails.Night.length > 0 ?
+                                currentShiftDetails.Night.map(emp => <li key={emp} style={styles.employeeItem}>{emp}</li>) :
+                                <li style={styles.employeeItem}>No assignments</li>
+                            }
                         </ul>
                     </div>
                 </div>
@@ -67,7 +107,9 @@ const styles: Record<string, React.CSSProperties> = {
         backgroundColor: '#2c2c2c',
         padding: '30px',
         borderRadius: '12px',
-        width: '500px',
+        width: '700px',
+        maxHeight: '90vh',
+        overflowY: 'auto',
         boxShadow: '0 8px 32px rgba(0,0,0,0.3)',
     },
     header: {
@@ -78,16 +120,17 @@ const styles: Record<string, React.CSSProperties> = {
     leavesContainer: {
         marginBottom: '20px',
         padding: '10px',
-        backgroundColor: 'red',
+        backgroundColor: '#3b3b3b',
         borderRadius: '5px',
     },
     shiftContainer: {
-        display: 'flex',
-        justifyContent: 'space-around',
+        display: 'grid',
+        gridTemplateColumns: 'repeat(3, 1fr)',
+        gap: '20px',
         marginBottom: '30px',
     },
     shiftColumn: {
-        width: '45%',
+        // width: '45%',
     },
     shiftTitle: {
         color: '#fff',
@@ -113,6 +156,26 @@ const styles: Record<string, React.CSSProperties> = {
         color: 'white',
         fontWeight: 'bold',
         cursor: 'pointer',
+    },
+    tabsContainer: {
+        display: 'flex',
+        marginBottom: '20px',
+        borderBottom: '1px solid #555',
+    },
+    tabButton: {
+        padding: '10px 20px',
+        border: 'none',
+        backgroundColor: '#3b3b3b',
+        color: '#fff',
+        cursor: 'pointer',
+        fontSize: '1em',
+        borderTopLeftRadius: '8px',
+        borderTopRightRadius: '8px',
+        transition: 'background-color 0.3s ease',
+    },
+    activeTab: {
+        backgroundColor: '#555',
+        fontWeight: 'bold',
     },
 };
 

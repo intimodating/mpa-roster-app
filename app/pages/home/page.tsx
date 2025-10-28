@@ -2,7 +2,8 @@
 "use client";
 import React, { useState, useEffect } from 'react';
 import { useRouter } from 'next/navigation';
-import Link from 'next/link'; // <--- Make sure to import Link
+import Link from 'next/link';
+import ManageWorkersModal from '../roster/ManageWorkersModal'; // Import the new modal
 
 // Define the shape of the user data we expect to store
 interface UserData {
@@ -15,6 +16,7 @@ export default function HomePage() {
   const router = useRouter();
   const [user, setUser] = useState<UserData | null>(null);
   const [isLoading, setIsLoading] = useState(true);
+  const [isManageWorkersModalOpen, setIsManageWorkersModalOpen] = useState(false); // State for modal
 
   useEffect(() => {
     // 1. Attempt to retrieve stored user data from local storage
@@ -56,7 +58,6 @@ export default function HomePage() {
   }
 
   return (
-    // 🛑 Apply the new navy blue root style
     <div style={styles.root}>
       <div style={styles.container}>
         <h1 style={styles.header}>Welcome, {user.name}! 🚀</h1>
@@ -68,16 +69,28 @@ export default function HomePage() {
           <h2>MPA Roster Dashboard</h2>
           <p>This is your personalized home page, secured after successful login.</p>
 
-          {/* 🛑 NEW BUTTON TO ROSTER PAGE */}
           <Link href="/pages/roster" passHref>
             <button style={styles.rosterButton}>View Roster Calendar</button>
           </Link>
+
+          {user.account_type === "Planner" && (
+            <button 
+              style={{ ...styles.rosterButton, marginLeft: '10px' }} 
+              onClick={() => setIsManageWorkersModalOpen(true)}
+            >
+              Manage Workers
+            </button>
+          )}
         </div>
 
         <button onClick={handleLogout} style={styles.logoutButton}>
           Logout
         </button>
       </div>
+
+      {isManageWorkersModalOpen && (
+        <ManageWorkersModal onClose={() => setIsManageWorkersModalOpen(false)} />
+      )}
     </div>
   );
 }
