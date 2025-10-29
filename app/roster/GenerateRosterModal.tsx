@@ -1,5 +1,5 @@
 
-// app/pages/roster/GenerateRosterModal.tsx
+// app/roster/GenerateRosterModal.tsx
 "use client";
 import React, { useState } from 'react';
 

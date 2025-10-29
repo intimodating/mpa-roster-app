@@ -26,21 +26,25 @@ async function generateRosterWithPython(employees: any[], requests: any[], leave
             rosterData += data.toString();
         });
 
+        let stderrData = '';
         pythonProcess.stderr.on('data', (data) => {
-            console.error(`stderr: ${data}`);
-            reject(data.toString());
+            const message = data.toString();
+            console.error(`stderr: ${message}`);
+            stderrData += message;
         });
 
         pythonProcess.on('close', (code) => {
             if (code === 0) {
                 try {
+                    console.log("Raw rosterData from Python:", rosterData);
                     const roster = JSON.parse(rosterData);
-                    resolve(roster);
+                    resolve({roster, logs: stderrData.split('\n')});
                 } catch (error) {
+                    console.error("Error parsing JSON:", error);
                     reject('Failed to parse roster data from Python script.');
                 }
             } else {
-                reject(`Python script exited with code ${code}`);
+                reject(`Python script exited with code ${code}. Stderr: ${stderrData}`);
             }
         });
 
@@ -89,7 +93,7 @@ export async function POST(req: Request) {
             currentDate.setUTCDate(currentDate.getUTCDate() + 1);
         }
 
-        const generatedRoster = await generateRosterWithPython(employees, requests, leaveData);
+        const { roster: generatedRoster, logs } = await generateRosterWithPython(employees, requests, leaveData);
 
         await Roster.deleteMany({
             date: {
@@ -114,7 +118,7 @@ export async function POST(req: Request) {
             }
         }
 
-        return NextResponse.json({ success: true, roster: generatedRoster, logs: [] });
+        return NextResponse.json({ success: true, roster: generatedRoster, logs });
 
     } catch (error) {
         console.error("Roster Generation Error:", error);

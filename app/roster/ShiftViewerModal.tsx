@@ -1,5 +1,5 @@
 
-// app/pages/roster/ShiftViewerModal.tsx
+// app/roster/ShiftViewerModal.tsx
 "use client";
 import React, { useState } from 'react';
 

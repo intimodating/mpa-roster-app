@@ -1,4 +1,4 @@
-// app/pages/leave-requests/page.tsx
+// app/leave-requests/page.tsx
 "use client";
 import React, { useState, useEffect } from 'react';
 import { useRouter } from 'next/navigation';
@@ -73,7 +73,7 @@ export default function LeaveRequestsPage() {
         <div style={styles.root}>
             <div style={styles.container}>
                 <h1 style={styles.header}>Pending Leave Requests</h1>
-                <button style={styles.backButton} onClick={() => router.push('/pages/roster')}>
+                <button style={styles.backButton} onClick={() => router.push('/roster')}>
                     Back to Roster
                 </button>
                 {pendingLeaves.length === 0 ? (
