@@ -35,7 +35,7 @@ export default function Home() {
         };
         localStorage.setItem('loggedInUser', JSON.stringify(userToStore));
         
-        router.push('/pages/home'); 
+        router.push('/home'); 
       } else {
         alert(data.message);
       }
