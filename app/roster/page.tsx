@@ -265,7 +265,7 @@ export default function RosterPage() {
           )}
 
           {user.account_type === "Planner" && (
-            <button style={styles.plannerButton} onClick={() => router.push('/pages/leave-requests')}>
+            <button style={styles.plannerButton} onClick={() => router.push('/leave-requests')}>
               Leave requests
             </button>
           )}
@@ -278,7 +278,7 @@ export default function RosterPage() {
             Leave Request History
           </button>
 
-          <button style={styles.backButton} onClick={() => router.push('/pages/home')}>
+          <button style={styles.backButton} onClick={() => router.push('/home')}>
             Back to Home
           </button>
         </div>
