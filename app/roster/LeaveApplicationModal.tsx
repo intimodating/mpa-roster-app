@@ -1,5 +1,5 @@
 
-// app/pages/roster/LeaveApplicationModal.tsx
+// app/roster/LeaveApplicationModal.tsx
 "use client";
 import React, { useState, useMemo } from 'react';
 

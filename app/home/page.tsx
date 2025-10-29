@@ -1,4 +1,4 @@
-// app/pages/home/page.tsx
+// app/home/page.tsx
 "use client";
 import React, { useState, useEffect } from 'react';
 import { useRouter } from 'next/navigation';
@@ -69,7 +69,7 @@ export default function HomePage() {
           <h2>MPA Roster Dashboard</h2>
           <p>This is your personalized home page, secured after successful login.</p>
 
-          <Link href="/pages/roster" passHref>
+          <Link href="/roster" passHref>
             <button style={styles.rosterButton}>View Roster Calendar</button>
           </Link>
 
