@@ -26,7 +26,7 @@ export default function HomePage() {
       try {
         const userData: UserData = JSON.parse(storedUser);
         setUser(userData);
-      } catch (error) {
+      } catch (_error: unknown) {
         // Handle corrupt data
         localStorage.removeItem('loggedInUser');
         router.push('/'); 

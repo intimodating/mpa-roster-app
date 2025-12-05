@@ -1,6 +1,6 @@
 
 // app/api/roster/approve/route.ts
-import { connectToDatabase } from "../../../../lib/mongodb";
+import { connectToDatabase } from "../../../../lib/mongoose-client";
 import Roster from "../../../../models/roster";
 import { NextResponse } from "next/server";
 

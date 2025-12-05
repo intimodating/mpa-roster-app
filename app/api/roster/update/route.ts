@@ -1,6 +1,5 @@
-import { connectToDatabase } from "../../../../lib/mongodb"; 
+import { connectToDatabase, User } from "../../../../lib/mongoose-client";
 import Roster from "../../../../models/roster"; 
-import User from "../../../../models/users"; 
 import { NextResponse } from "next/server";
 
 interface ShiftDetails {

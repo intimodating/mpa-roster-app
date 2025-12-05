@@ -4,6 +4,10 @@ interface ManageWorkersModalProps {
   onClose: () => void;
 }
 
+type WorkerRequestBody = 
+  | { user_id: string; password?: string; account_type?: 'Planner' | 'Non-Planner'; proficiency_grade?: number; }
+  | { user_id: string; };
+
 const ManageWorkersModal: React.FC<ManageWorkersModalProps> = ({ onClose }) => {
   const [activeTab, setActiveTab] = useState<'add' | 'modify' | 'delete'>('add');
   const [message, setMessage] = useState<{ type: 'success' | 'error'; text: string } | null>(null);
@@ -24,7 +28,7 @@ const ManageWorkersModal: React.FC<ManageWorkersModalProps> = ({ onClose }) => {
   // State for Delete Worker
   const [deleteUserId, setDeleteUserId] = useState('');
 
-  const handleSubmit = async (endpoint: string, body: any) => {
+  const handleSubmit = async (endpoint: string, body: WorkerRequestBody) => {
     setIsLoading(true);
     setMessage(null);
     try {
@@ -53,7 +57,7 @@ const ManageWorkersModal: React.FC<ManageWorkersModalProps> = ({ onClose }) => {
       } else {
         setMessage({ type: 'error', text: data.message });
       }
-    } catch (err) {
+    } catch (_err: unknown) {
       setMessage({ type: 'error', text: 'An unexpected error occurred.' });
     } finally {
       setIsLoading(false);
@@ -70,7 +74,12 @@ const ManageWorkersModal: React.FC<ManageWorkersModalProps> = ({ onClose }) => {
   };
 
   const handleModifyWorker = () => {
-    const updateBody: any = { user_id: modifyUserId };
+    const updateBody: WorkerRequestBody = { 
+      user_id: modifyUserId,
+      password: modifyPassword,
+      account_type: modifyAccountType === '' ? undefined : modifyAccountType,
+      proficiency_grade: modifyProficiencyGrade === '' ? undefined : modifyProficiencyGrade
+    };
     if (modifyPassword) updateBody.password = modifyPassword;
     if (modifyAccountType) updateBody.account_type = modifyAccountType;
     if (modifyProficiencyGrade !== '') updateBody.proficiency_grade = modifyProficiencyGrade;

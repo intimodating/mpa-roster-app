@@ -1,11 +1,10 @@
 // app/api/roster/fetch/[date]/route.ts
-import { connectToDatabase } from "../../../../../lib/mongodb"; 
-import Roster from "../../../../../models/roster"; // <-- Ensure this path is correct
-import { NextResponse } from "next/server";
+import { connectToDatabase } from "../../../../../lib/mongoose-client"; 
+import Roster from "../../../../../models/roster";
+import { NextResponse, NextRequest } from "next/server";
 
-// We use the GET method for fetching data
-export async function GET(req: Request, { params }: { params: { date: string } }) {
-    const { date } = params; // The date string (e.g., '2025-10-20')
+export async function GET(req: NextRequest, context: { params: { date: string } }) {
+    const { date } = await context.params;
 
     if (!date) {
         return NextResponse.json({ success: false, message: "Date parameter is missing" }, { status: 400 });
@@ -14,10 +13,8 @@ export async function GET(req: Request, { params }: { params: { date: string } }
     try {
         await connectToDatabase();
 
-        // --- 1. Define the 24-hour window in UTC for the given date ---
-        // This relies on the convention that dates are stored as UTC midnight (e.g., 2025-10-20T00:00:00.000Z)
         const startOfDayUTC = new Date(date + 'T00:00:00.000Z');
-        const endOfDayUTC = new Date(startOfDayUTC.getTime() + (24 * 60 * 60 * 1000)); // Start of next day
+        const endOfDayUTC = new Date(startOfDayUTC.getTime() + (24 * 60 * 60 * 1000));
 
         const dateFilter = {
             date: {
@@ -26,28 +23,46 @@ export async function GET(req: Request, { params }: { params: { date: string } }
             }
         };
 
-        // --- 2. Query all roster entries for that day ---
-        const assignments = await Roster.find(dateFilter).select('user_id shift_type -_id');
+        // Fetch user_id, shift_type, and location
+        const assignments = await Roster.find(dateFilter).select('user_id shift_type location -_id');
         
-        // --- 3. Format the result for the client ---
-        // The client needs two clean arrays: dayShiftEmployees and nightShiftEmployees
-        const dayShiftEmployees: string[] = [];
-        const nightShiftEmployees: string[] = [];
-        
-        assignments.forEach(assignment => {
-            if (assignment.shift_type === 'Day Shift') {
-                dayShiftEmployees.push(assignment.user_id);
-            } else if (assignment.shift_type === 'Night Shift') {
-                nightShiftEmployees.push(assignment.user_id);
-            }
-            // Ignore 'Leave' or other types for this list
-        });
-        
+        // Initialize the data structure the client expects
         const shiftData = {
             date: date,
-            dayShiftEmployees: dayShiftEmployees,
-            nightShiftEmployees: nightShiftEmployees
+            East: {
+                Morning: [] as string[],
+                Afternoon: [] as string[],
+                Night: [] as string[],
+            },
+            West: {
+                Morning: [] as string[],
+                Afternoon: [] as string[],
+                Night: [] as string[],
+            }
         };
+
+        if (assignments.length === 0) {
+            // If no assignments, return the empty structure but indicate success
+            return NextResponse.json({ 
+                success: true, 
+                message: `No roster data found for ${date}.`,
+                data: shiftData
+            });
+        }
+
+        // Populate the structure
+        assignments.forEach(assignment => {
+            const { user_id, shift_type, location } = assignment;
+            if (location === 'East' || location === 'West') {
+                if (shift_type === 'Morning' || shift_type === 'Afternoon' || shift_type === 'Night') {
+                    // @ts-expect-error: Dynamic access to shiftData[location][shift_type]
+                    if (shiftData[location][shift_type]) {
+                        // @ts-expect-error: Dynamic access to shiftData[location][shift_type]
+                        shiftData[location][shift_type].push(user_id);
+                    }
+                }
+            }
+        });
 
         return NextResponse.json({ 
             success: true, 
