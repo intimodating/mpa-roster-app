@@ -9,12 +9,11 @@ const userSchema = new mongoose.Schema({
   email: String,
   age: Number,
   hobbies: [String],
+  reserve_deploy_count: { type: Number, required: true, default: 0 },
 }, {
   collection: 'Users' // <-- Add this line to specify the exact collection name
 });
 
 const modelName = 'User'; // <-- Define the exact string name for the model
 
-const User = mongoose.models[modelName] || mongoose.model(modelName, userSchema);
-
-export default User;
+export default mongoose.models.User || mongoose.model("User", userSchema, "Users");

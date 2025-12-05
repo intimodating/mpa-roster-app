@@ -2,16 +2,12 @@
 // app/roster/GenerateRosterModal.tsx
 "use client";
 import React, { useState } from 'react';
+import { RosterMap, ShiftData } from '../../types/roster'; // Import RosterMap and ShiftData
 
 interface GenerateRosterModalProps {
   onClose: () => void;
-  onApprove: (roster: any) => void;
+  onApprove: (roster: RosterMap) => Promise<void>; // Changed to RosterMap and Promise<void>
 }
-
-type RosterPreview = Record<string, {
-  East: { Morning: string[]; Afternoon: string[]; Night: string[]; };
-  West: { Morning: string[]; Afternoon: string[]; Night: string[]; };
-}>;
 
 type WorkerRequirements = {
   [location: string]: { // "East" or "West"
@@ -65,7 +61,7 @@ const GenerateRosterModal: React.FC<GenerateRosterModalProps> = ({ onClose, onAp
       } else {
         setError(data.message || 'Failed to generate roster.');
       }
-    } catch (err) {
+    } catch (_err: unknown) {
       setError('An unexpected error occurred.');
     } finally {
       setIsLoading(false);
@@ -166,7 +162,7 @@ const GenerateRosterModal: React.FC<GenerateRosterModalProps> = ({ onClose, onAp
                 </tr>
               </thead>
               <tbody>
-                {Object.entries(rosterPreview).map(([date, shifts]) => (
+                {Object.entries(rosterPreview).map(([date, shifts]: [string, ShiftData]) => (
                   <tr key={date}>
                     <td style={styles.td}>{date}</td>
                     <td style={styles.td}>{shifts.East.Morning.join(', ')}</td>

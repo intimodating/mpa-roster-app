@@ -35,15 +35,13 @@ export async function POST(req: Request) {
 
         // Create a new leave entry for each day in the range
         const leaveEntries = [];
-        let currentDate = new Date(start);
-        while (currentDate <= end) {
+        for (let currentDate = new Date(start); currentDate <= end; currentDate.setDate(currentDate.getDate() + 1)) {
             leaveEntries.push({
                 user_id,
                 date: new Date(currentDate), // Store each day as a separate entry
                 leave_type,
                 status: "Pending", // Default status
             });
-            currentDate.setDate(currentDate.getDate() + 1);
         }
 
         await Leave.insertMany(leaveEntries);

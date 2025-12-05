@@ -1,5 +1,4 @@
-import { connectToDatabase } from "../../../../lib/mongodb";
-import User from "../../../../models/users";
+import { connectToDatabase, User } from "../../../../lib/mongoose-client";
 import Roster from "../../../../models/roster";
 import Leave from "../../../../models/leaves";
 import { NextResponse } from "next/server";
@@ -17,7 +16,24 @@ interface GeneratePayload {
     workerRequirements: WorkerRequirements;
 }
 
-async function generateRosterWithPython(employees: any[], requests: any[], leaveData: any): Promise<any> {
+interface Employee {
+    id: string;
+    proficiency_grade: number;
+}
+
+interface RequestItem {
+    date: string;
+    location: string;
+    shiftType: 'Morning' | 'Afternoon' | 'Night';
+    required_proficiencies: WorkerRequirements[string];
+}
+
+interface PythonRosterResult {
+    roster: Record<string, any>; // The generatedRoster structure is complex, let's keep it any for now or define it more precisely if needed
+    logs: string[];
+}
+
+async function generateRosterWithPython(employees: Employee[], requests: RequestItem[], leaveData: Record<string, string[]>): Promise<PythonRosterResult> {
     return new Promise((resolve, reject) => {
         const pythonProcess = spawn('python', ['scripts/scheduler.py']);
 

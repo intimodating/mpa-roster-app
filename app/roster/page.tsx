@@ -7,7 +7,7 @@ import ShiftViewerModal from './ShiftViewerModal';
 import LeaveApplicationModal from './LeaveApplicationModal';
 import GenerateRosterModal from './GenerateRosterModal';
 import LeaveHistoryModal from './LeaveHistoryModal';
-import Link from 'next/link';
+
 
 // --- INTERFACES ---
 interface UserData {
@@ -22,7 +22,7 @@ interface ShiftDetails {
   Night: string[];
 }
 
-interface ShiftData {
+export interface ShiftData { // Added export
     date: string; // YYYY-MM-DD
     East: ShiftDetails;
     West: ShiftDetails;
@@ -30,7 +30,7 @@ interface ShiftData {
 }
 
 // RosterMap is a map of dateKey ('YYYY-MM-DD') to ShiftData
-type RosterMap = Record<string, ShiftData>;
+export type RosterMap = Record<string, ShiftData>; // Added export
 
 // --- MAIN COMPONENT ---
 export default function RosterPage() {
@@ -406,7 +406,7 @@ const CalendarView: React.FC<CalendarProps> = React.memo(({ currentDate, changeM
           const isUserOnMorningShift = user?.account_type === 'Non-Planner' && (shiftsEast.Morning.includes(user.user_id) || shiftsWest.Morning.includes(user.user_id));
           const isUserOnAfternoonShift = user?.account_type === 'Non-Planner' && (shiftsEast.Afternoon.includes(user.user_id) || shiftsWest.Afternoon.includes(user.user_id));
           const isUserOnNightShift = user?.account_type === 'Non-Planner' && (shiftsEast.Night.includes(user.user_id) || shiftsWest.Night.includes(user.user_id));
-          const isUserOnShift = isUserOnMorningShift || isUserOnAfternoonShift || isUserOnNightShift;
+          const _isUserOnShift = isUserOnMorningShift || isUserOnAfternoonShift || isUserOnNightShift;
 
           const morningText = isUserOnMorningShift ? 'You' : totalMorningShift;
           const afternoonText = isUserOnAfternoonShift ? 'You' : totalAfternoonShift;
@@ -460,6 +460,7 @@ const CalendarView: React.FC<CalendarProps> = React.memo(({ currentDate, changeM
     </div>
   );
 });
+CalendarView.displayName = 'CalendarView';
 
 // --------------------------------------------------------------------------
 // STYLES (Provided for completeness)
