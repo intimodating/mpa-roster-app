@@ -1,0 +1,36 @@
+{
+  "name": "roster-app",
+  "version": "0.1.0",
+  "private": true,
+  "scripts": {
+    "dev": "next dev",
+    "build": "next build",
+    "start": "next start",
+    "lint": "eslint",
+    "add-workers": "cross-env NODE_OPTIONS=\"-r dotenv/config\" npx ts-node scripts/addWorkers.ts",
+    "init-deploy-count": "cross-env NODE_OPTIONS=\"-r dotenv/config\" npx ts-node scripts/initialize-deploy-count.ts",
+    "init-deploy-count:js": "node scripts/initialize-deploy-count.js",
+    "test-db": "dotenv -e .env.local -- npx ts-node scripts/test-db-write.ts",
+    "update-deploy-counts": "dotenv -e .env.local -- npx ts-node --project scripts/tsconfig.json scripts/update-deploy-counts.ts"
+  },
+  "dependencies": {
+    "mongoose": "^8.3.2",
+    "next": "15.5.4",
+    "react": "18.2.0",
+    "react-dom": "18.2.0"
+  },
+  "devDependencies": {
+    "@eslint/eslintrc": "^3",
+    "@types/node": "^20",
+    "@types/react": "^19",
+    "@types/react-dom": "^19",
+    "cross-env": "^10.1.0",
+    "dotenv": "^17.2.3",
+    "dotenv-cli": "^10.0.0",
+    "eslint": "^9",
+    "eslint-config-next": "15.5.4",
+    "ts-node": "^10.9.2",
+    "tsconfig-paths": "^4.2.0",
+    "typescript": "^5.9.3"
+  }
+}
