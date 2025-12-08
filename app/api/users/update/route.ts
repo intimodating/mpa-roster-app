@@ -1,6 +1,11 @@
-import { connectToDatabase } from "../../../../lib/mongodb";
-import User from "../../../../models/users";
+import { connectToDatabase, User } from "../../../../lib/mongoose-client";
 import { NextResponse } from "next/server";
+
+interface UpdateUserFields {
+    password?: string;
+    account_type?: string;
+    proficiency_grade?: number;
+}
 
 export async function POST(req: Request) {
     let body;
@@ -20,7 +25,7 @@ export async function POST(req: Request) {
 
         await connectToDatabase();
 
-        const updateFields: any = {};
+        const updateFields: UpdateUserFields = {};
         if (password !== undefined) updateFields.password = password; // In a real application, hash this password!
         if (account_type !== undefined) updateFields.account_type = account_type;
         if (proficiency_grade !== undefined && proficiency_grade !== '') updateFields.proficiency_grade = parseInt(proficiency_grade, 10);

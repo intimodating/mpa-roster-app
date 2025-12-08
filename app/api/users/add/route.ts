@@ -1,5 +1,4 @@
-import { connectToDatabase } from "../../../../lib/mongodb";
-import User from "../../../../models/users";
+import { connectToDatabase, User } from "../../../../lib/mongoose-client";
 import { NextResponse } from "next/server";
 
 export async function POST(req: Request) {
