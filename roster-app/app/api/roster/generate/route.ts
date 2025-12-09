@@ -27,8 +27,16 @@ interface RequestItem {
     required_proficiencies: WorkerRequirements[string];
 }
 
+type GeneratedRoster = {
+    [date: string]: {
+        [location: string]: {
+            [shiftType: string]: string[];
+        };
+    };
+};
+
 interface PythonRosterResult {
-    roster: Record<string, any>;
+    roster: GeneratedRoster;
     logs: string[];
 }
 
