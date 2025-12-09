@@ -57,7 +57,8 @@ const ManageWorkersModal: React.FC<ManageWorkersModalProps> = ({ onClose }) => {
       } else {
         setMessage({ type: 'error', text: data.message });
       }
-    } catch (_err: unknown) {
+    } catch (err: unknown) {
+      console.error("An error occurred while submitting the form:", err);
       setMessage({ type: 'error', text: 'An unexpected error occurred.' });
     } finally {
       setIsLoading(false);

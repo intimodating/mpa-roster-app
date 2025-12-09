@@ -61,7 +61,8 @@ const GenerateRosterModal: React.FC<GenerateRosterModalProps> = ({ onClose, onAp
       } else {
         setError(data.message || 'Failed to generate roster.');
       }
-    } catch (_err: unknown) {
+    } catch (err: unknown) {
+      console.error("Failed to generate roster preview:", err);
       setError('An unexpected error occurred.');
     } finally {
       setIsLoading(false);

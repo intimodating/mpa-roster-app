@@ -406,7 +406,6 @@ const CalendarView: React.FC<CalendarProps> = React.memo(({ currentDate, changeM
           const isUserOnMorningShift = user?.account_type === 'Non-Planner' && (shiftsEast.Morning.includes(user.user_id) || shiftsWest.Morning.includes(user.user_id));
           const isUserOnAfternoonShift = user?.account_type === 'Non-Planner' && (shiftsEast.Afternoon.includes(user.user_id) || shiftsWest.Afternoon.includes(user.user_id));
           const isUserOnNightShift = user?.account_type === 'Non-Planner' && (shiftsEast.Night.includes(user.user_id) || shiftsWest.Night.includes(user.user_id));
-          const _isUserOnShift = isUserOnMorningShift || isUserOnAfternoonShift || isUserOnNightShift;
 
           const morningText = isUserOnMorningShift ? 'You' : totalMorningShift;
           const afternoonText = isUserOnAfternoonShift ? 'You' : totalAfternoonShift;
