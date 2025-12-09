@@ -23,6 +23,7 @@ if (!MONGO_URI) {
 export async function connectToDatabase() {
   console.log("⏳ Creating new MongoDB connection (from mongoose-client)...");
   try {
+    console.log("Attempting to connect with URI:", MONGO_URI);
     const connection = await mongoose.connect(MONGO_URI!);
     console.log("✅ New MongoDB connection established (from mongoose-client)");
     return connection;
@@ -51,7 +52,7 @@ const userSchema = new mongoose.Schema({
 let User: mongoose.Model<UserDocument>;
 try {
   User = mongoose.model<UserDocument>('User');
-} catch (error) {
+} catch (_error) {
   User = mongoose.model<UserDocument>('User', userSchema, 'Users');
 }
 
