@@ -58,7 +58,7 @@ async function generateRosterWithPython(employees: Employee[], requests: Request
             body: JSON.stringify({ employees, requests, leaveData }),
             // It's a good practice to set a timeout for external calls.
             // In Node.js 18+, you can use AbortSignal.timeout()
-            // signal: AbortSignal.timeout(60000) // 60 seconds
+            signal: AbortSignal.timeout(300000) // 5 minutes
         });
 
         if (!response.ok) {

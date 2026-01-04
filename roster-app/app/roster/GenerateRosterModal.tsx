@@ -1,7 +1,7 @@
 
 // app/roster/GenerateRosterModal.tsx
 "use client";
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { RosterMap, ShiftData } from '../../types/roster'; // Import RosterMap and ShiftData
 
 interface GenerateRosterModalProps {
@@ -28,6 +28,26 @@ const GenerateRosterModal: React.FC<GenerateRosterModalProps> = ({ onClose, onAp
   const [isLoading, setIsLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [activeLocation, setActiveLocation] = useState<'East' | 'West'>('East');
+  const [progress, setProgress] = useState(0);
+
+  useEffect(() => {
+    if (isLoading) {
+      setProgress(0);
+      const timer = setInterval(() => {
+        setProgress(oldProgress => {
+          if (oldProgress >= 90) {
+            clearInterval(timer);
+            return oldProgress;
+          }
+          return oldProgress + 1;
+        });
+      }, 300); // Fills up to 90% in 27 seconds
+
+      return () => {
+        clearInterval(timer);
+      };
+    }
+  }, [isLoading]);
 
   const handleGradeChange = (location: string, grade: string, value: number) => {
     setWorkerRequirements(prev => ({
@@ -66,6 +86,7 @@ const GenerateRosterModal: React.FC<GenerateRosterModalProps> = ({ onClose, onAp
       setError('An unexpected error occurred.');
     } finally {
       setIsLoading(false);
+      setProgress(100);
     }
   };
 
@@ -107,7 +128,14 @@ const GenerateRosterModal: React.FC<GenerateRosterModalProps> = ({ onClose, onAp
         <h2>Generate Roster</h2>
         {error && <p style={{ color: 'red' }}>{error}</p>}
         
-        {isLoading && <p>Loading...</p>}
+        {isLoading && (
+          <div style={styles.progressContainer}>
+            <p>Generating Roster... {Math.round(progress)}%</p>
+            <div style={styles.progressBarBackground}>
+              <div style={{...styles.progressBarFill, width: `${progress}%`}}></div>
+            </div>
+          </div>
+        )}
 
         {!rosterPreview && !isLoading && (
           <>
@@ -141,7 +169,13 @@ const GenerateRosterModal: React.FC<GenerateRosterModalProps> = ({ onClose, onAp
             </div>
 
             <div style={styles.buttonContainer}>
-              <button onClick={handleGenerate} style={styles.generateButton}>Generate</button>
+              <button 
+                onClick={handleGenerate} 
+                style={{...styles.generateButton, opacity: isLoading ? 0.6 : 1}}
+                disabled={isLoading}
+              >
+                {isLoading ? 'Generating...' : 'Generate'}
+              </button>
               <button onClick={onClose} style={styles.closeButton}>Close</button>
             </div>
           </>
@@ -328,6 +362,23 @@ const styles: Record<string, React.CSSProperties> = {
         border: '1px solid #555',
         borderRadius: '8px',
         backgroundColor: '#333',
+      },
+      progressContainer: {
+        textAlign: 'center',
+        margin: '20px 0',
+      },
+      progressBarBackground: {
+        height: '20px',
+        width: '100%',
+        backgroundColor: '#444',
+        borderRadius: '10px',
+        marginTop: '10px',
+      },
+      progressBarFill: {
+        height: '100%',
+        backgroundColor: '#405de6',
+        borderRadius: '10px',
+        transition: 'width 0.3s ease-in-out',
       }
 };
 

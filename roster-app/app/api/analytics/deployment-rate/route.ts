@@ -2,11 +2,20 @@ import { connectToDatabase, User } from "../../../../lib/mongoose-client";
 import Roster from "../../../../models/roster"; // Assuming Roster model exists
 import { NextResponse } from "next/server";
 
-export async function GET() {
+export async function GET(req: Request) {
   try {
     await connectToDatabase();
 
-    const currentYear = new Date().getFullYear();
+    const { searchParams } = new URL(req.url);
+    const year = searchParams.get('year') 
+      ? parseInt(searchParams.get('year')!, 10) 
+      : new Date().getFullYear();
+    
+    const gradesParam = searchParams.get('grades');
+    const gradesToProcess = gradesParam
+      ? gradesParam.split(',').map(g => parseInt(g.trim(), 10))
+      : Array.from({ length: 9 }, (_, i) => i + 1);
+
     const monthNames = [
       "Jan", "Feb", "Mar", "Apr", "May", "Jun",
       "Jul", "Aug", "Sep", "Oct", "Nov", "Dec"
@@ -21,14 +30,14 @@ export async function GET() {
       const monthNum = i + 1;
       const monthName = monthNames[i];
 
-      const startOfMonth = new Date(currentYear, i, 1);
-      const endOfMonth = new Date(currentYear, i + 1, 0); // Last day of the month
+      const startOfMonth = new Date(year, i, 1);
+      const endOfMonth = new Date(year, i + 1, 0); // Last day of the month
 
       const monthlyDeployment: Record<string, number | string> = {
         month: monthName,
       };
 
-      for (let grade = 1; grade <= 9; grade++) {
+      for (const grade of gradesToProcess) {
         const usersInGrade = allUsers.filter(user => user.proficiency_grade === grade);
         const totalWorkforceInGrade = usersInGrade.length;
         

@@ -1,5 +1,5 @@
 "use client";
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import Image from "next/image";
 import styles from "./page.module.css";
 import { useRouter } from 'next/navigation'; 
@@ -8,15 +8,37 @@ import LoginForm from "./components/LoginForm";
 export default function Home() {
   const router = useRouter();
 
-  const [isLoading, setIsLoading] = useState(false); //for loading button
+  const [isLoading, setIsLoading] = useState(false);
+  const [progress, setProgress] = useState(0);
+
+  useEffect(() => {
+    if (isLoading) {
+      const timer = setInterval(() => {
+        setProgress(oldProgress => {
+          if (oldProgress >= 90) {
+            clearInterval(timer);
+            return oldProgress;
+          }
+          return oldProgress + 10; // Fast simulation for login
+        });
+      }, 50);
+
+      return () => {
+        clearInterval(timer);
+      };
+    }
+  }, [isLoading]);
 
   async function handleLogin(user_id: string, password: string) {
-    // 2. Set loading state to true
     setIsLoading(true);
+    setProgress(0);
 
     console.log("User entered:", user_id, password);
     
     try {
+      // Simulate a short delay for login
+      await new Promise(resolve => setTimeout(resolve, 500));
+
       const res = await fetch("/api/login", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
@@ -27,7 +49,6 @@ export default function Home() {
       console.log(data);
 
       if (data.success) {
-        // Store user data and redirect
         const userToStore = { 
           name: data.user.name, 
           user_id: data.user.user_id,
@@ -35,17 +56,20 @@ export default function Home() {
         };
         localStorage.setItem('loggedInUser', JSON.stringify(userToStore));
         
+        setProgress(100);
+        await new Promise(resolve => setTimeout(resolve, 300));
+
         router.push('/home'); 
       } else {
         alert(data.message);
+        setIsLoading(false);
       }
     } catch (error) {
       console.error("Login Error:", error);
       alert("An unexpected error occurred. Please try again.");
-    } finally {
-      // 3. Set loading state back to false after everything is done
       setIsLoading(false);
-    }
+    } 
+    // finally block removed to handle loading state manually
   }
 
   return (
@@ -61,8 +85,16 @@ export default function Home() {
         />
 
         <div className={styles.formContainer}>
-          {/* Pass the loading state to LoginForm */}
-          <LoginForm onLogin={handleLogin} isLoading={isLoading} />
+          {isLoading ? (
+            <div className={styles.progressContainer}>
+              <p style={{textAlign: 'center', fontSize: '1.2em'}}>Logging In... {Math.round(progress)}%</p>
+              <div className={styles.progressBarBackground}>
+                <div className={styles.progressBarFill} style={{width: `${progress}%`}}></div>
+              </div>
+            </div>
+          ) : (
+            <LoginForm onLogin={handleLogin} isLoading={isLoading} />
+          )}
         </div>
       </main>
     </div>
