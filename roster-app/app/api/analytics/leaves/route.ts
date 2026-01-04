@@ -2,14 +2,18 @@ import { connectToDatabase } from "../../../../lib/mongoose-client";
 import Leave from "../../../../models/leaves";
 import { NextResponse } from "next/server";
 
-export async function GET() {
+export async function GET(req: Request) {
   console.log("DEBUG: Starting leaves analytics GET request");
   try {
     await connectToDatabase();
     console.log("DEBUG: Database connected for leaves analytics");
     
-    const currentYear = new Date().getFullYear();
-    console.log("DEBUG: currentYear:", currentYear);
+    const { searchParams } = new URL(req.url);
+    const year = searchParams.get('year') 
+      ? parseInt(searchParams.get('year')!, 10) 
+      : new Date().getFullYear();
+
+    console.log(`DEBUG: Filtering for year: ${year}`);
 
     console.log("DEBUG: Aggregation pipeline constructed, executing...");
     const leaveData = await Leave.aggregate([
@@ -17,8 +21,8 @@ export async function GET() {
         $match: {
           status: "Approved", // Only consider approved leaves for analytics
           date: {
-            $gte: new Date(currentYear, 0, 1), // Start of current year
-            $lte: new Date(currentYear, 11, 31, 23, 59, 59, 999), // End of current year
+            $gte: new Date(year, 0, 1), // Start of selected year
+            $lte: new Date(year, 11, 31, 23, 59, 59, 999), // End of selected year
           },
         },
       },
