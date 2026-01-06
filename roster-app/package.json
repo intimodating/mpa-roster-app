@@ -11,7 +11,8 @@
     "init-deploy-count": "cross-env NODE_OPTIONS=\"-r dotenv/config\" npx ts-node scripts/initialize-deploy-count.ts",
     "init-deploy-count:js": "node scripts/initialize-deploy-count.js",
     "test-db": "dotenv -e .env.local -- npx ts-node scripts/test-db-write.ts",
-    "update-deploy-counts": "dotenv -e .env.local -- npx ts-node --project scripts/tsconfig.json scripts/update-deploy-counts.ts"
+    "update-deploy-counts": "dotenv -e .env.local -- npx ts-node --project scripts/tsconfig.json scripts/update-deploy-counts.ts",
+    "assign-teams": "cross-env NODE_OPTIONS=\"-r dotenv/config\" npx ts-node scripts/assign-teams.ts"
   },
   "dependencies": {
     "mongoose": "^8.3.2",

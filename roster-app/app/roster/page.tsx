@@ -31,6 +31,8 @@ export interface ShiftData { // Added export
 
 // RosterMap is a map of dateKey ('YYYY-MM-DD') to ShiftData
 export type RosterMap = Record<string, ShiftData>; // Added export
+type UserStatusMap = Record<string, string>;
+type LeavesMap = Record<string, string[]>;
 
 // --- MAIN COMPONENT ---
 export default function RosterPage() {
@@ -39,10 +41,10 @@ export default function RosterPage() {
   const [currentDate, setCurrentDate] = useState(new Date());
   const [isLoading, setIsLoading] = useState(true);
   
-  // Roster state: Stores fetched shifts for the entire visible calendar range
-  const [rosterData, setRosterData] = useState<RosterMap>({});
-  const [approvedLeaveDates, setApprovedLeaveDates] = useState<string[]>([]);
-  const [allApprovedLeaves, setAllApprovedLeaves] = useState<Record<string, string[]>>({});
+  // Roster state
+  const [rosterData, setRosterData] = useState<RosterMap | UserStatusMap>({});
+  const [leavesData, setLeavesData] = useState<LeavesMap>({});
+  const [isPlanner, setIsPlanner] = useState(false);
   
   // Modal State
   const [isModalOpen, setIsModalOpen] = useState(false);
@@ -65,67 +67,39 @@ export default function RosterPage() {
 
   // --- FETCH MONTH DATA EFFECT ---
   useEffect(() => {
-    // Only fetch if user data is loaded
     if (!user) return; 
 
     setIsLoading(true);
 
-    // 1. Calculate the start and end of the relevant calendar range
     const year = currentDate.getFullYear();
     const month = currentDate.getMonth();
-
-    // Find the first day of the month and its day of the week (0=Sun)
     const firstOfMonth = new Date(year, month, 1);
     const startDayOfWeek = firstOfMonth.getDay(); 
-    
-    // Calculate the start date of the visible calendar (may be in the previous month)
     const startDate = new Date(firstOfMonth);
     startDate.setDate(firstOfMonth.getDate() - startDayOfWeek);
-    
-    // Calculate the end date of the visible calendar (6 weeks from the start)
     const endDate = new Date(startDate);
-    endDate.setDate(startDate.getDate() + 42); // 6 weeks * 7 days
+    endDate.setDate(startDate.getDate() + 42);
 
-    // Format dates for API query (UTC midnight)
     const startDateStr = startDate.toISOString().split('T')[0] + 'T00:00:00.000Z';
     const endDateStr = endDate.toISOString().split('T')[0] + 'T00:00:00.000Z';
 
-    const fetchAllData = async () => {
+    const fetchRosterData = async () => {
       try {
-        const rosterPromise = fetch(`/api/roster/fetch-month?startDate=${startDateStr}&endDate=${endDateStr}`).then(res => res.json());
-        
-        const approvedLeavesPromise = user?.account_type === "Non-Planner"
-          ? fetch(`/api/leave/fetch-approved-user?userId=${user.user_id}&startDate=${startDateStr}&endDate=${endDateStr}`).then(res => res.json())
-          : Promise.resolve({ success: true, data: [] }); // Resolve immediately if not Non-Planner
+        const res = await fetch(`/api/roster/fetch-month?startDate=${startDateStr}&endDate=${endDateStr}&userId=${user.user_id}`);
+        const result = await res.json();
 
-        const allApprovedLeavesPromise = user?.account_type === "Planner"
-          ? fetch(`/api/leave/fetch-approved-all?startDate=${startDateStr}&endDate=${endDateStr}`).then(res => res.json())
-          : Promise.resolve({ success: true, data: {} }); // Resolve immediately if not Planner
-
-        const [rosterResult, approvedLeavesResult, allApprovedLeavesResult] = await Promise.all([
-          rosterPromise,
-          approvedLeavesPromise,
-          allApprovedLeavesPromise
-        ]);
-
-        if (rosterResult.success) {
-          setRosterData(rosterResult.data);
+        if (result.success) {
+          setIsPlanner(result.isPlanner);
+          if (result.isPlanner) {
+            setRosterData(result.data.roster);
+            setLeavesData(result.data.leaves);
+          } else {
+            setRosterData(result.data);
+            setLeavesData({});
+          }
         } else {
-          console.error("Month Fetch Failed:", rosterResult.message);
+          console.error("Month Fetch Failed:", result.message);
         }
-
-        if (approvedLeavesResult.success) {
-          setApprovedLeaveDates(approvedLeavesResult.data);
-        } else {
-          console.error("Fetch Approved Leaves Failed:", approvedLeavesResult.message);
-        }
-
-        if (allApprovedLeavesResult.success) {
-          setAllApprovedLeaves(allApprovedLeavesResult.data);
-        } else {
-          console.error("Fetch All Approved Leaves Failed:", allApprovedLeavesResult.message);
-        }
-
       } catch (error) {
         console.error("Error during data fetch:", error);
       } finally {
@@ -133,9 +107,8 @@ export default function RosterPage() {
       }
     };
 
-    fetchAllData();
-
-  }, [currentDate, user]); // Re-run when month changes or user loads
+    fetchRosterData();
+  }, [currentDate, user]);
 
   // --- HANDLERS ---
   
@@ -143,34 +116,23 @@ export default function RosterPage() {
     setCurrentDate(prev => new Date(prev.getFullYear(), prev.getMonth() + delta, 1));
   };
 
-  /**
-   * Prepares shift data for the modal using the data already fetched for the month.
-   * @param dateKey The date in 'YYYY-MM-DD' format.
-   */
   const handleDayClick = (dateKey: string) => {
-    const existingData = rosterData[dateKey];
-    const leavesOnDay = allApprovedLeaves[dateKey] || [];
-    const dataForModal: ShiftData = {
-        date: dateKey, 
-        East: existingData?.East || { Morning: [], Afternoon: [], Night: [] },
-        West: existingData?.West || { Morning: [], Afternoon: [], Night: [] },
-        leaves: leavesOnDay // Add leaves information here
-    };
-
-    setSelectedShiftData(dataForModal);
-
-    if (user?.account_type === "Planner") {
+    if (isPlanner) {
+        const rosterMap = rosterData as RosterMap;
+        const existingData = rosterMap[dateKey];
+        const leavesOnDay = leavesData[dateKey] || [];
+        const dataForModal: ShiftData = {
+            date: dateKey, 
+            East: existingData?.East || { Morning: [], Afternoon: [], Night: [] },
+            West: existingData?.West || { Morning: [], Afternoon: [], Night: [] },
+            leaves: leavesOnDay
+        };
+        setSelectedShiftData(dataForModal);
         setIsModalOpen(true);
-    } else {
-        setIsViewerModalOpen(true);
     }
+    // For non-planners, do nothing on click, as the status is already visible on the calendar.
   };
 
-  /**
-   * Saves changes via the API and updates local state upon success.
-   * This function will need to be updated to handle the new roster structure.
-   * For now, it's a placeholder.
-   */
   const handleSaveShifts = async (updatedData: ShiftData) => {
     setIsLoading(true);
     try {
@@ -179,17 +141,13 @@ export default function RosterPage() {
           headers: { 'Content-Type': 'application/json' },
           body: JSON.stringify(updatedData),
       });
-
       const data = await res.json();
-
       if (!data.success) {
           alert(`Failed to save: ${data.message}`);
           return;
       }
-
       setRosterData(prev => ({ ...prev, [updatedData.date]: updatedData }));
       setIsModalOpen(false);
-      
     } catch (error) {
         console.error("API Call Error:", error);
         alert("An error occurred while saving the roster.");
@@ -201,23 +159,14 @@ export default function RosterPage() {
   const handleApproveRoster = async (roster: RosterMap) => {
     setIsLoading(true);
     try {
-      console.log("Roster object being sent to approve API:", roster);
-
       const res = await fetch('/api/roster/approve', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ roster }),
       });
-
       const data = await res.json();
-
-      if (data.logs) {
-        console.log("Approve API logs:", data.logs);
-      }
-
       if (data.success) {
         alert('Roster approved and saved successfully!');
-        
         const newRosterData: RosterMap = {};
         for (const date in roster) {
           newRosterData[date] = {
@@ -226,8 +175,6 @@ export default function RosterPage() {
             date: date,
           };
         }
-        
-        console.log("New roster data for local state:", newRosterData);
         setRosterData(prev => ({ ...prev, ...newRosterData }));
       } else {
         alert(`Failed to approve roster: ${data.message}`);
@@ -256,47 +203,40 @@ export default function RosterPage() {
       <div style={styles.container}>
         <h1 style={styles.header}>Roster Calendar for {user.name}</h1>
         
-        {/* Planner-only button container */}
         <div style={styles.buttonContainer}>
-          {user.account_type === "Planner" && (
-            <button style={styles.plannerButton} onClick={() => setIsGenerateRosterModalOpen(true)}>
-              Generate Roster
-            </button>
+          {isPlanner && (
+            <>
+              <button style={styles.plannerButton} onClick={() => setIsGenerateRosterModalOpen(true)}>
+                Generate Roster
+              </button>
+              <button style={styles.plannerButton} onClick={() => router.push('/leave-requests')}>
+                Leave requests
+              </button>
+            </>
           )}
-
-          {user.account_type === "Planner" && (
-            <button style={styles.plannerButton} onClick={() => router.push('/leave-requests')}>
-              Leave requests
-            </button>
-          )}
-          
           <button style={styles.leaveButton} onClick={() => setIsLeaveModalOpen(true)}>
             Apply Leave
           </button>
-
           <button style={styles.leaveButton} onClick={() => setIsLeaveHistoryModalOpen(true)}>
             Leave Request History
           </button>
-
           <button style={styles.backButton} onClick={() => router.push('/home')}>
             Back to Home
           </button>
         </div>
 
-        {/* CALENDAR VIEW */}
         <CalendarView
           currentDate={currentDate}
           changeMonth={changeMonth}
           rosterData={rosterData}
+          leavesData={leavesData}
           onDayClick={handleDayClick}
           user={user}
-          approvedLeaveDates={approvedLeaveDates}
-          allApprovedLeaves={allApprovedLeaves}
+          isPlanner={isPlanner}
         />
       </div>
 
-      {/* MODAL */}
-      {isModalOpen && selectedShiftData && user.account_type === "Planner" && (
+      {isModalOpen && selectedShiftData && isPlanner && (
         <ShiftEditorModal
           shiftData={selectedShiftData}
           onClose={() => setIsModalOpen(false)}
@@ -335,36 +275,30 @@ export default function RosterPage() {
 }
 
 // --------------------------------------------------------------------------
-// CalendarView Component (Displays the calendar grid)
+// CalendarView Component
 // --------------------------------------------------------------------------
 
 interface CalendarProps {
   currentDate: Date;
   changeMonth: (delta: number) => void;
-  rosterData: RosterMap;
+  rosterData: RosterMap | UserStatusMap;
+  leavesData: LeavesMap;
   onDayClick: (dateKey: string) => void;
   user: UserData | null;
-  approvedLeaveDates: string[];
-  allApprovedLeaves: Record<string, string[]>;
+  isPlanner: boolean;
 }
 
-const CalendarView: React.FC<CalendarProps> = React.memo(({ currentDate, changeMonth, rosterData, onDayClick, user, approvedLeaveDates, allApprovedLeaves }) => {
+const CalendarView: React.FC<CalendarProps> = React.memo(({ currentDate, changeMonth, rosterData, leavesData, onDayClick, user, isPlanner }) => {
   const month = currentDate.getMonth();
   const year = currentDate.getFullYear();
-  const firstDayOfMonth = new Date(year, month, 1).getDay(); // 0 (Sun) to 6 (Sat)
+  const firstDayOfMonth = new Date(year, month, 1).getDay();
   const daysInMonth = new Date(year, month + 1, 0).getDate();
   const todayDateString = new Date().toISOString().split('T')[0];
 
   const calendarDays: (number | null)[] = useMemo(() => {
     const days: (number | null)[] = [];
-    // Fill leading empty cells
-    for (let i = 0; i < firstDayOfMonth; i++) {
-      days.push(null);
-    }
-    // Fill days of the month
-    for (let i = 1; i <= daysInMonth; i++) {
-      days.push(i);
-    }
+    for (let i = 0; i < firstDayOfMonth; i++) days.push(null);
+    for (let i = 1; i <= daysInMonth; i++) days.push(i);
     return days;
   }, [firstDayOfMonth, daysInMonth]);
 
@@ -386,74 +320,66 @@ const CalendarView: React.FC<CalendarProps> = React.memo(({ currentDate, changeM
             return <div key={index} style={calStyles.emptyCell}></div>;
           }
 
-          // Format the date key (e.g., 'YYYY-MM-DD')
           const date = new Date(year, month, day);
-          const yyyy = date.getFullYear();
-          const mm = String(date.getMonth() + 1).padStart(2, '0');
-          const dd = String(date.getDate()).padStart(2, '0');
-          const dateKey = `${yyyy}-${mm}-${dd}`;
-          
-          const shiftsEast = rosterData[dateKey]?.East || { Morning: [], Afternoon: [], Night: [] };
-          const shiftsWest = rosterData[dateKey]?.West || { Morning: [], Afternoon: [], Night: [] };
-
-          const totalMorningShift = shiftsEast.Morning.length + shiftsWest.Morning.length;
-          const totalAfternoonShift = shiftsEast.Afternoon.length + shiftsWest.Afternoon.length;
-          const totalNightShift = shiftsEast.Night.length + shiftsWest.Night.length;
-
-          const hasShift = totalMorningShift > 0 || totalAfternoonShift > 0 || totalNightShift > 0;
+          const dateKey = `${date.getFullYear()}-${String(date.getMonth() + 1).padStart(2, '0')}-${String(date.getDate()).padStart(2, '0')}`;
           const isToday = dateKey === todayDateString;
 
-          const isUserOnMorningShift = user?.account_type === 'Non-Planner' && (shiftsEast.Morning.includes(user.user_id) || shiftsWest.Morning.includes(user.user_id));
-          const isUserOnAfternoonShift = user?.account_type === 'Non-Planner' && (shiftsEast.Afternoon.includes(user.user_id) || shiftsWest.Afternoon.includes(user.user_id));
-          const isUserOnNightShift = user?.account_type === 'Non-Planner' && (shiftsEast.Night.includes(user.user_id) || shiftsWest.Night.includes(user.user_id));
+          if (isPlanner) {
+            const plannerRoster = rosterData as RosterMap;
+            const shiftsEast = plannerRoster[dateKey]?.East || { Morning: [], Afternoon: [], Night: [] };
+            const shiftsWest = plannerRoster[dateKey]?.West || { Morning: [], Afternoon: [], Night: [] };
+            const totalMorningShift = shiftsEast.Morning.length + shiftsWest.Morning.length;
+            const totalAfternoonShift = shiftsEast.Afternoon.length + shiftsWest.Afternoon.length;
+            const totalNightShift = shiftsEast.Night.length + shiftsWest.Night.length;
+            const hasShift = totalMorningShift > 0 || totalAfternoonShift > 0 || totalNightShift > 0;
+            const leavesOnDay = leavesData[dateKey] || [];
 
-          const morningText = isUserOnMorningShift ? 'You' : totalMorningShift;
-          const afternoonText = isUserOnAfternoonShift ? 'You' : totalAfternoonShift;
-          const nightText = isUserOnNightShift ? 'You' : totalNightShift;
-          const isUserOnLeave = approvedLeaveDates.includes(dateKey);
-          
-          return (
-            <div
-              key={dateKey}
-              style={{
-                ...calStyles.dayCell,
-                cursor: 'pointer',
-                backgroundColor: hasShift ? '#2E4034' : '#3b3b3b',
-                border: isToday ? '2px solid #1a73e8' : '1px solid #555' // Highlight today
-              }}
-              onClick={() => onDayClick(dateKey)}
-            >
-              <div style={calStyles.dayNumber}>{day}</div>
-              
-              {isUserOnLeave && (
-                <div style={{...calStyles.shiftIndicator, backgroundColor: '#FFD700', color: 'black'}}>
-                  On Leave
-                </div>
-              )}                        
-              {user?.account_type === "Planner" && (allApprovedLeaves[dateKey]?.length > 0) && (
-                <div style={{...calStyles.shiftIndicator, backgroundColor: '#FFD700', color: 'black'}}>
-                  Leave: {allApprovedLeaves[dateKey].length}
-                </div>
-              )}
-              
-              {/* Show shift indicators using fetched data */}
-              {totalMorningShift > 0 && (
-                <div style={{...calStyles.shiftIndicator, backgroundColor: isUserOnMorningShift ? 'red' : '#34a853'}}>
-                  Morning: {morningText}
-                </div>
-              )} 
-              {totalAfternoonShift > 0 && (
-                <div style={{...calStyles.shiftIndicator, backgroundColor: isUserOnAfternoonShift ? 'red' : '#4285F4', marginTop: '3px'}}>
-                  Afternoon: {afternoonText}
-                </div>
-              )}
-              {totalNightShift > 0 && (
-                <div style={{...calStyles.shiftIndicator, backgroundColor: isUserOnNightShift ? 'red' : '#8a2be2', marginTop: '3px'}}>
-                  Night: {nightText}
-                </div>
-              )}
-            </div>
-          );
+            return (
+              <div
+                key={dateKey}
+                style={{
+                  ...calStyles.dayCell,
+                  cursor: 'pointer',
+                  backgroundColor: hasShift ? '#2E4034' : '#3b3b3b',
+                  border: isToday ? '2px solid #1a73e8' : '1px solid #555'
+                }}
+                onClick={() => onDayClick(dateKey)}
+              >
+                <div style={calStyles.dayNumber}>{day}</div>
+                {leavesOnDay.length > 0 && (
+                  <div style={{...calStyles.shiftIndicator, backgroundColor: '#FFD700', color: 'black'}}>
+                    Leave: {leavesOnDay.length}
+                  </div>
+                )}
+                {totalMorningShift > 0 && <div style={{...calStyles.shiftIndicator, backgroundColor: '#34a853', marginTop: '3px'}}>Morning: {totalMorningShift}</div>}
+                {totalAfternoonShift > 0 && <div style={{...calStyles.shiftIndicator, backgroundColor: '#4285F4', marginTop: '3px'}}>Afternoon: {totalAfternoonShift}</div>}
+                {totalNightShift > 0 && <div style={{...calStyles.shiftIndicator, backgroundColor: '#8a2be2', marginTop: '3px'}}>Night: {totalNightShift}</div>}
+              </div>
+            );
+          } else { // Non-Planner view
+            const userStatusMap = rosterData as UserStatusMap;
+            const status = userStatusMap[dateKey];
+            const isLeave = status === 'On Leave';
+
+            return (
+              <div
+                key={dateKey}
+                style={{
+                  ...calStyles.dayCell,
+                  cursor: 'default',
+                  backgroundColor: status ? '#2E4034' : '#3b3b3b',
+                  border: isToday ? '2px solid #1a73e8' : '1px solid #555'
+                }}
+              >
+                <div style={calStyles.dayNumber}>{day}</div>
+                {status && (
+                  <div style={{...calStyles.shiftIndicator, backgroundColor: isLeave ? '#FFD700' : '#dc3545', color: isLeave ? 'black' : 'white'}}>
+                    {status}
+                  </div>
+                )}
+              </div>
+            );
+          }
         })}
       </div>
     </div>
@@ -462,7 +388,7 @@ const CalendarView: React.FC<CalendarProps> = React.memo(({ currentDate, changeM
 CalendarView.displayName = 'CalendarView';
 
 // --------------------------------------------------------------------------
-// STYLES (Provided for completeness)
+// STYLES
 // --------------------------------------------------------------------------
 
 const styles: Record<string, React.CSSProperties> = {
@@ -577,10 +503,13 @@ const calStyles: Record<string, React.CSSProperties> = {
     color: '#fff',
   },
   shiftIndicator: {
-    fontSize: '0.7em',
-    padding: '3px 6px',
+    fontSize: '0.9em',
+    padding: '4px 8px',
     borderRadius: '4px',
     color: 'white',
-    lineHeight: 1,
+    lineHeight: 1.2,
+    width: '100%',
+    textAlign: 'center',
+    boxSizing: 'border-box',
   }
 };

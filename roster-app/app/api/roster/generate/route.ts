@@ -41,13 +41,18 @@ interface PythonRosterResult {
 }
 
 async function generateRosterWithPython(employees: Employee[], requests: RequestItem[], leaveData: Record<string, string[]>): Promise<PythonRosterResult> {
-    const rosterGeneratorUrl = process.env.ROSTER_GENERATOR_URL;
+    let rosterGeneratorUrl: string | undefined;
 
-    if (!rosterGeneratorUrl) {
-        throw new Error("ROSTER_GENERATOR_URL environment variable is not set.");
+    if (process.env.NODE_ENV === 'production') {
+        rosterGeneratorUrl = process.env.ROSTER_GENERATOR_URL;
+        if (!rosterGeneratorUrl) {
+            throw new Error("ROSTER_GENERATOR_URL environment variable is not set for production.");
+        }
+    } else {
+        rosterGeneratorUrl = 'http://localhost:5000/generate-roster';
     }
 
-    console.log("Calling roster generator service at:", rosterGeneratorUrl);
+    console.log(`[${process.env.NODE_ENV}] Calling roster generator service at:`, rosterGeneratorUrl);
 
     try {
         const response = await fetch(rosterGeneratorUrl, {
@@ -56,8 +61,6 @@ async function generateRosterWithPython(employees: Employee[], requests: Request
                 'Content-Type': 'application/json',
             },
             body: JSON.stringify({ employees, requests, leaveData }),
-            // It's a good practice to set a timeout for external calls.
-            // In Node.js 18+, you can use AbortSignal.timeout()
             signal: AbortSignal.timeout(300000) // 5 minutes
         });
 
@@ -69,13 +72,14 @@ async function generateRosterWithPython(employees: Employee[], requests: Request
 
         const roster = await response.json();
         
-        // The new service doesn't return stderr logs directly, so we return an empty array.
-        // Logs can be checked directly on the Cloud Run service instance.
-        return { roster, logs: ["Roster generated via Cloud Run service. Check service logs for details."] };
+        const logs = process.env.NODE_ENV === 'production' 
+            ? ["Roster generated via Cloud Run service. Check service logs for details."]
+            : ["Roster generated via local service."];
+
+        return { roster, logs };
 
     } catch (error) {
         console.error("Failed to fetch from roster generator service:", error);
-        // Re-throw the error to be caught by the main POST handler
         throw error;
     }
 }
