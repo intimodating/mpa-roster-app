@@ -1,5 +1,7 @@
 import { connectToDatabase } from "../../../../lib/mongoose-client"; 
-import Roster from "../../../../models/roster"; 
+import Roster from "../../../../models/roster";
+import User from "../../../../models/users";
+import Leave from "../../../../models/leaves";
 import { NextResponse } from "next/server";
 
 interface ShiftData {
@@ -16,23 +18,26 @@ interface LocationShiftData {
 type RosterMap = Record<string, LocationShiftData>;
 
 export async function GET(req: Request) {
-    // Get URL search parameters (startDate and endDate)
     const url = new URL(req.url);
     const startDateStr = url.searchParams.get('startDate');
     const endDateStr = url.searchParams.get('endDate');
+    const userId = url.searchParams.get('userId');
 
-    if (!startDateStr || !endDateStr) {
+    if (!startDateStr || !endDateStr || !userId) {
         return NextResponse.json({ 
             success: false, 
-            message: "startDate and endDate parameters are required." 
+            message: "startDate, endDate, and userId parameters are required." 
         }, { status: 400 });
     }
 
     try {
         await connectToDatabase();
 
-        // Convert string parameters to UTC Date objects for Mongoose query
-        // The dates should already be correctly formatted as UTC midnight by the frontend
+        const user = await User.findOne({ user_id: userId }).select('account_type');
+        if (!user) {
+            return NextResponse.json({ success: false, message: "User not found" }, { status: 404 });
+        }
+
         const startDateUTC = new Date(startDateStr);
         const endDateUTC = new Date(endDateStr);
 
@@ -43,37 +48,65 @@ export async function GET(req: Request) {
             }
         };
 
-        // 1. Fetch all roster entries in the date range
-        // Select the fields needed for the calendar view and reformatting, including 'location'
-        const assignments = await Roster.find(dateFilter).select('user_id shift_type date location -_id');
-        
-        // 2. Reformat the raw assignments into the RosterMap structure
-        const rosterMap: RosterMap = {};
+        if (user.account_type === 'Planner') {
+            const assignments = await Roster.find(dateFilter).select('user_id shift_type date location -_id');
+            const rosterMap: RosterMap = {};
 
-        assignments.forEach(assignment => {
-            // Convert the stored UTC Date object back to the 'YYYY-MM-DD' string key (UTC date part)
-            const dateKey = assignment.date.toISOString().split('T')[0];
+            assignments.forEach(assignment => {
+                const dateKey = assignment.date.toISOString().split('T')[0];
+                
+                if (!rosterMap[dateKey]) {
+                    rosterMap[dateKey] = {
+                        East: { Morning: [], Afternoon: [], Night: [] },
+                        West: { Morning: [], Afternoon: [], Night: [] },
+                    };
+                }
+
+                const location = assignment.location as keyof LocationShiftData;
+                const shiftType = assignment.shift_type as keyof ShiftData;
+
+                if (location && (shiftType === 'Morning' || shiftType === 'Afternoon' || shiftType === 'Night') && rosterMap[dateKey][location]) {
+                    rosterMap[dateKey][location][shiftType].push(assignment.user_id);
+                }
+            });
             
-            if (!rosterMap[dateKey]) {
-                rosterMap[dateKey] = {
-                    East: { Morning: [], Afternoon: [], Night: [] },
-                    West: { Morning: [], Afternoon: [], Night: [] },
-                };
-            }
+            const leaves = await Leave.find({ ...dateFilter, status: 'Approved' }).select('user_id date -_id');
+            const leavesMap: Record<string, string[]> = {};
+            leaves.forEach(leave => {
+                const dateKey = leave.date.toISOString().split('T')[0];
+                if (!leavesMap[dateKey]) leavesMap[dateKey] = [];
+                leavesMap[dateKey].push(leave.user_id);
+            });
 
-            const location = assignment.location as keyof LocationShiftData;
-            const shiftType = assignment.shift_type as keyof ShiftData;
+            return NextResponse.json({ 
+                success: true, 
+                isPlanner: true,
+                message: `Roster data for ${startDateStr.split('T')[0]} to ${endDateStr.split('T')[0]} fetched.`,
+                data: { roster: rosterMap, leaves: leavesMap }
+            });
 
-            if (location && (shiftType === 'Morning' || shiftType === 'Afternoon' || shiftType === 'Night') && rosterMap[dateKey][location]) {
-                rosterMap[dateKey][location][shiftType].push(assignment.user_id);
-            }
-        });
-        
-        return NextResponse.json({ 
-            success: true, 
-            message: `Roster data for ${startDateStr.split('T')[0]} to ${endDateStr.split('T')[0]} fetched.`,
-            data: rosterMap
-        });
+        } else { // Non-Planner
+            const userStatusMap: Record<string, string> = {};
+
+            const userAssignments = await Roster.find({ ...dateFilter, user_id: userId }).select('shift_type date -_id');
+            userAssignments.forEach(assignment => {
+                const dateKey = assignment.date.toISOString().split('T')[0];
+                userStatusMap[dateKey] = assignment.shift_type;
+            });
+
+            const userLeaves = await Leave.find({ ...dateFilter, user_id: userId, status: 'Approved' }).select('date -_id');
+            userLeaves.forEach(leave => {
+                const dateKey = leave.date.toISOString().split('T')[0];
+                userStatusMap[dateKey] = 'On Leave';
+            });
+
+            return NextResponse.json({
+                success: true,
+                isPlanner: false,
+                message: `Your schedule for ${startDateStr.split('T')[0]} to ${endDateStr.split('T')[0]} fetched.`,
+                data: userStatusMap
+            });
+        }
         
     } catch (error) {
         console.error("Month Fetch Error:", error);

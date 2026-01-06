@@ -10,6 +10,7 @@ const userSchema = new mongoose.Schema({
   age: Number,
   hobbies: [String],
   reserve_deploy_count: { type: Number, required: true, default: 0 },
+  team: { type: Number }
 }, {
   collection: 'Users' // <-- Add this line to specify the exact collection name
 });

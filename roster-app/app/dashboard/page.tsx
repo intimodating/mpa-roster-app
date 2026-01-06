@@ -25,11 +25,18 @@ interface WorkforceData {
     count: number;
 }
 
+interface TeamProficiencyData {
+    team: number;
+    [key: number]: number; // Proficiency grades
+}
+
 export default function DashboardPage() {
   const [leaveData, setLeaveData] = useState<LeaveAnalyticsData[]>([]);
   const [deploymentData, setDeploymentData] = useState<DeploymentAnalyticsData[]>([]);
   const [workforceData, setWorkforceData] = useState<WorkforceData[]>([]);
+  const [teamProficiencyData, setTeamProficiencyData] = useState<TeamProficiencyData[]>([]);
   const [isLoading, setIsLoading] = useState(true);
+  const [isDeploymentChartLoading, setIsDeploymentChartLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const router = useRouter();
   const [progress, setProgress] = useState(0);
@@ -63,34 +70,31 @@ export default function DashboardPage() {
         const leaveUrl = `/api/analytics/leaves?year=${selectedYear}`;
         const deploymentUrl = `/api/analytics/deployment-rate?year=${selectedYear}&grades=${gradesQuery}`;
         const workforceUrl = `/api/analytics/workforce-structure`;
+        const teamProficiencyUrl = `/api/analytics/team-proficiency`;
 
-        const [leaveRes, deploymentRes, workforceRes] = await Promise.all([
+        const [leaveRes, deploymentRes, workforceRes, teamProficiencyRes] = await Promise.all([
           fetch(leaveUrl),
           fetch(deploymentUrl),
           fetch(workforceUrl),
+          fetch(teamProficiencyUrl),
         ]);
 
         const leaveJson = await leaveRes.json();
         const deploymentJson = await deploymentRes.json();
         const workforceJson = await workforceRes.json();
+        const teamProficiencyJson = await teamProficiencyRes.json();
 
-        if (leaveJson.success) {
-          setLeaveData(leaveJson.data);
-        } else {
-          throw new Error(leaveJson.message || 'Failed to fetch leave analytics');
-        }
+        if (leaveJson.success) setLeaveData(leaveJson.data);
+        else throw new Error(leaveJson.message || 'Failed to fetch leave analytics');
 
-        if (deploymentJson.success) {
-          setDeploymentData(deploymentJson.data);
-        } else {
-          throw new Error(deploymentJson.message || 'Failed to fetch deployment analytics');
-        }
+        if (deploymentJson.success) setDeploymentData(deploymentJson.data);
+        else throw new Error(deploymentJson.message || 'Failed to fetch deployment analytics');
 
-        if (workforceJson.success) {
-            setWorkforceData(workforceJson.data);
-        } else {
-            throw new Error(workforceJson.message || 'Failed to fetch workforce data');
-        }
+        if (workforceJson.success) setWorkforceData(workforceJson.data);
+        else throw new Error(workforceJson.message || 'Failed to fetch workforce data');
+        
+        if (teamProficiencyJson.success) setTeamProficiencyData(teamProficiencyJson.data);
+        else throw new Error(teamProficiencyJson.message || 'Failed to fetch team proficiency data');
 
       } catch (err: any) {
         console.error("Dashboard fetch error:", err);
@@ -103,7 +107,7 @@ export default function DashboardPage() {
     };
 
     fetchData();
-  }, [selectedYear, activeGrades]); // Re-fetch only when activeGrades change
+  }, [selectedYear]);
 
   const handleGradeChange = (grade: number) => {
     setSelectedGrades(prev =>
@@ -113,8 +117,26 @@ export default function DashboardPage() {
     );
   };
   
-  const handleApplyGradeFilter = () => {
-    setActiveGrades(selectedGrades);
+  const handleApplyGradeFilter = async () => {
+    setIsDeploymentChartLoading(true);
+    try {
+      const gradesQuery = selectedGrades.join(',');
+      const deploymentUrl = `/api/analytics/deployment-rate?year=${selectedYear}&grades=${gradesQuery}`;
+      const deploymentRes = await fetch(deploymentUrl);
+      const deploymentJson = await deploymentRes.json();
+
+      if (deploymentJson.success) {
+        setDeploymentData(deploymentJson.data);
+        setActiveGrades(selectedGrades); // Update active grades after successful fetch
+      } else {
+        throw new Error(deploymentJson.message || 'Failed to fetch deployment analytics');
+      }
+    } catch (err: any) {
+      console.error("Dashboard fetch error (deployment):", err);
+      setError(err.message || 'An unexpected error occurred while fetching deployment data.');
+    } finally {
+      setIsDeploymentChartLoading(false);
+    }
   };
 
   if (isLoading) {
@@ -200,6 +222,32 @@ export default function DashboardPage() {
       </div>
 
       <div style={styles.chartSection}>
+        <h2 style={styles.chartTitle}>Team Proficiency Matrix</h2>
+        <div style={{ overflowX: 'auto' }}>
+            <table style={styles.matrixTable}>
+                <thead>
+                    <tr>
+                        <th style={styles.matrixHeader}>Team</th>
+                        {allGrades.map(grade => (
+                            <th key={grade} style={styles.matrixHeader}>{`Grade ${grade}`}</th>
+                        ))}
+                    </tr>
+                </thead>
+                <tbody>
+                    {teamProficiencyData.sort((a, b) => a.team - b.team).map(row => (
+                        <tr key={row.team}>
+                            <td style={styles.matrixCell}>{row.team}</td>
+                            {allGrades.map(grade => (
+                                <td key={grade} style={styles.matrixCell}>{row[grade] || 0}</td>
+                            ))}
+                        </tr>
+                    ))}
+                </tbody>
+            </table>
+        </div>
+      </div>
+
+      <div style={styles.chartSection}>
         <h2 style={styles.chartTitle}>Deployment Rate by Proficiency Grade (%) ({selectedYear})</h2>
         {/* Grade Filter */}
         <div style={styles.filterGroup}>
@@ -217,9 +265,12 @@ export default function DashboardPage() {
                 </label>
               ))}
             </div>
-            <button onClick={handleApplyGradeFilter} style={styles.button}>Reload Chart</button>
+            <button onClick={handleApplyGradeFilter} style={styles.button} disabled={isDeploymentChartLoading}>
+              {isDeploymentChartLoading ? 'Reloading...' : 'Reload Chart'}
+            </button>
           </div>
         </div>
+        {isDeploymentChartLoading && <p style={{textAlign: 'center', color: '#ccc'}}>Loading chart data...</p>}
         <ResponsiveContainer width="100%" height={300}>
           <LineChart data={deploymentData} margin={{ top: 5, right: 30, left: 20, bottom: 5 }}>
             <CartesianGrid strokeDasharray="3 3" stroke="#444" />
@@ -373,5 +424,21 @@ const styles: Record<string, React.CSSProperties> = {
     color: 'white',
     backgroundColor: '#405de6',
     transition: 'background-color 0.2s',
+  },
+  matrixTable: {
+    width: '100%',
+    borderCollapse: 'collapse',
+    marginTop: '20px',
+  },
+  matrixHeader: {
+    backgroundColor: '#3b3b3b',
+    color: '#fff',
+    padding: '12px 15px',
+    border: '1px solid #555',
+  },
+  matrixCell: {
+    padding: '12px 15px',
+    border: '1px solid #555',
+    textAlign: 'center',
   },
 };

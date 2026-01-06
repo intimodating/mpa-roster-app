@@ -158,22 +158,63 @@ def main(data):
                     if key in assign:
                         model.Add(assign[key] == 0)
 
-    # --- Soft understaffing constraints per shift-location ---
-    understaff_vars = []
+    # 3) Total staffing constraint: Do not assign more staff than required
     for (date_idx, shift_idx, loc_idx), var_list in assign_vars_by_shiftloc.items():
         required = total_required.get((date_idx, shift_idx, loc_idx), 0)
-        if required == 0:
-            # ensure no one is assigned if requirement is zero
-            if var_list:
-                model.Add(sum(var_list) == 0)
+        model.Add(sum(var_list) <= required)
+
+
+    # --- Per-Grade Staffing Constraints (Soft) ---
+    understaff_vars = []
+    # Iterate through each unique shift request (date, shift, location)
+    for req in requests_data:
+        date_idx = date_to_index.get(req["date"])
+        shift_idx = NAME_TO_SHIFT.get(req["shiftType"])
+        loc_idx = NAME_TO_LOCATION.get(req["location"])
+
+        if date_idx is None or shift_idx is None or loc_idx is None:
             continue
 
-        # create understaffing penalty 0..required
-        understaff = model.NewIntVar(0, required, f"understaff_d{date_idx}_s{shift_idx}_l{loc_idx}")
-        understaff_vars.append(understaff)
+        # Get all assignment variables for this specific shift, regardless of grade
+        all_eligible_employees_for_shift = eligible_union.get((date_idx, shift_idx, loc_idx), set())
+        
+        # Get all unique grades from this request's requirements to iterate over them
+        required_grades = sorted([int(g) for g in req["required_proficiencies"].keys()], reverse=True)
 
-        # sum(assign_vars) + understaff == required
-        model.Add(sum(var_list) + understaff == required)
+        for grade in required_grades:
+            # Calculate the cumulative number of employees required AT OR ABOVE this grade
+            cumulative_required_count = sum(
+                int(count) 
+                for g_str, count in req["required_proficiencies"].items() 
+                if int(g_str) >= grade
+            )
+
+            if cumulative_required_count == 0:
+                continue
+
+            # Identify which of the assigned employees for this shift meet the current grade requirement
+            assign_vars_for_cumulative_grade = []
+            for e_idx in all_eligible_employees_for_shift:
+                if employees_data[e_idx]["proficiency_grade"] >= grade:
+                    key = (e_idx, date_idx, shift_idx, loc_idx)
+                    if key in assign:  # Check var exists (i.e., employee is not on leave)
+                        assign_vars_for_cumulative_grade.append(assign[key])
+            
+            # Create a specific understaffing variable for this grade-level requirement
+            understaff = model.NewIntVar(0, cumulative_required_count, f"understaff_d{date_idx}_s{shift_idx}_l{loc_idx}_g{grade}_cum")
+            understaff_vars.append(understaff)
+
+            # Add the crucial constraint:
+            # The number of assigned employees who meet the grade requirement must, with the help of the understaffing variable,
+            # be at least the total number of people required at or above this grade.
+            model.Add(sum(assign_vars_for_cumulative_grade) + understaff >= cumulative_required_count)
+
+    # Also, ensure no one is assigned to shifts that require zero people.
+    for (date_idx, shift_idx, loc_idx), var_list in assign_vars_by_shiftloc.items():
+        required = total_required.get((date_idx, shift_idx, loc_idx), 0)
+        if required == 0 and var_list:
+            model.Add(sum(var_list) == 0)
+
 
     # --- Pattern deviations (soft) ---
     pattern_deviation_vars = []
