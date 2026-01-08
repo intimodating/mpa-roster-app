@@ -29,6 +29,7 @@ const GenerateRosterModal: React.FC<GenerateRosterModalProps> = ({ onClose, onAp
   const [error, setError] = useState<string | null>(null);
   const [activeLocation, setActiveLocation] = useState<'East' | 'West'>('East');
   const [progress, setProgress] = useState(0);
+  const [schedulingMode, setSchedulingMode] = useState<'individual' | 'team'>('individual');
 
   useEffect(() => {
     if (isLoading) {
@@ -70,7 +71,7 @@ const GenerateRosterModal: React.FC<GenerateRosterModalProps> = ({ onClose, onAp
       const res = await fetch('/api/roster/generate', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ startDate, endDate, workerRequirements }),
+        body: JSON.stringify({ startDate, endDate, workerRequirements, schedulingMode }),
       });
       const data = await res.json();
       if (data.logs) {
@@ -79,7 +80,13 @@ const GenerateRosterModal: React.FC<GenerateRosterModalProps> = ({ onClose, onAp
       if (data.success) {
         setRosterPreview(data.roster);
       } else {
-        setError(data.message || 'Failed to generate roster.');
+        // Handle validation errors from team-based scheduling
+        if (data.type === 'ValidationError' && data.details) {
+            const errorMessages = data.details.map((detail: any) => `- ${detail.date}: ${detail.message}`).join('\n');
+            setError(`Validation Failed:\n${errorMessages}`);
+        } else {
+            setError(data.message || 'Failed to generate roster.');
+        }
       }
     } catch (err: unknown) {
       console.error("Failed to generate roster preview:", err);
@@ -126,7 +133,7 @@ const GenerateRosterModal: React.FC<GenerateRosterModalProps> = ({ onClose, onAp
     <div style={styles.overlay}>
       <div style={styles.modal}>
         <h2>Generate Roster</h2>
-        {error && <p style={{ color: 'red' }}>{error}</p>}
+        {error && <p style={{ color: 'red', whiteSpace: 'pre-wrap' }}>{error}</p>}
         
         {isLoading && (
           <div style={styles.progressContainer}>
@@ -139,6 +146,31 @@ const GenerateRosterModal: React.FC<GenerateRosterModalProps> = ({ onClose, onAp
 
         {!rosterPreview && !isLoading && (
           <>
+            <div style={styles.inputGroup}>
+              <label>Scheduling Mode:</label>
+              <div style={{ display: 'flex', gap: '20px', marginTop: '10px' }}>
+                <label style={{ display: 'flex', alignItems: 'center' }}>
+                  <input
+                    type="radio"
+                    value="individual"
+                    checked={schedulingMode === 'individual'}
+                    onChange={() => setSchedulingMode('individual')}
+                    style={{ marginRight: '5px' }}
+                  />
+                  Individual-based
+                </label>
+                <label style={{ display: 'flex', alignItems: 'center' }}>
+                  <input
+                    type="radio"
+                    value="team"
+                    checked={schedulingMode === 'team'}
+                    onChange={() => setSchedulingMode('team')}
+                    style={{ marginRight: '5px' }}
+                  />
+                  Team-based
+                </label>
+              </div>
+            </div>
             <div style={styles.inputGroup}>
               <label>Start Date:</label>
               <input type="date" value={startDate} onChange={(e) => setStartDate(e.target.value)} style={styles.input} />
