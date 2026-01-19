@@ -134,7 +134,7 @@ def _run_greedy_team_based_scheduler(data):
             if responsible_team_id is None:
                  error_detail = (
                     f"No team scheduled for {date} {shift_type_name} @ {location_name} based on pattern and offsets. "
-                    f"Team offsets: {team_offsets}, Day in pattern: {day_in_pattern}."
+                    f"Team offsets: {team_offsets}."
                 )
                  validation_errors.append(error_detail)
                  continue # Skip allocation for this request if no team is assigned

@@ -5,6 +5,7 @@ interface UpdateUserFields {
     password?: string;
     account_type?: string;
     proficiency_grade?: number;
+    team?: number;
 }
 
 export async function POST(req: Request) {
@@ -17,7 +18,7 @@ export async function POST(req: Request) {
     }
 
     try {
-        const { user_id, password, account_type, proficiency_grade } = body;
+        const { user_id, password, account_type, proficiency_grade, team } = body;
 
         if (!user_id) {
             return NextResponse.json({ success: false, message: "User ID is required to update a worker." }, { status: 400 });
@@ -29,6 +30,8 @@ export async function POST(req: Request) {
         if (password !== undefined) updateFields.password = password; // In a real application, hash this password!
         if (account_type !== undefined) updateFields.account_type = account_type;
         if (proficiency_grade !== undefined && proficiency_grade !== '') updateFields.proficiency_grade = parseInt(proficiency_grade, 10);
+        if (team !== undefined && team !== '') updateFields.team = parseInt(team, 10);
+
 
         if (Object.keys(updateFields).length === 0) {
             return NextResponse.json({ success: false, message: "No update fields provided." }, { status: 400 });
