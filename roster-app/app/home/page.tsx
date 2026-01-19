@@ -70,25 +70,53 @@ export default function HomePage() {
           <h2>MPA Roster Dashboard</h2>
           <p>This is your personalized home page, secured after successful login.</p>
 
-                    <Link href="/roster" passHref>
-                      <button style={styles.rosterButton}>View Roster Calendar</button>
-                    </Link>
-          
-                    {user.account_type === "Planner" && (
-                      <>
-                        <button
-                          style={{ ...styles.rosterButton, marginLeft: '10px' }}
-                          onClick={() => setIsManageWorkersModalOpen(true)}
-                        >
-                          Manage Workers
-                        </button>
-                        <Link href="/dashboard" passHref>
-                          <button style={{ ...styles.rosterButton, marginLeft: '10px' }}>
-                            Analytics Dashboard
-                          </button>
-                        </Link>
-                      </>
-                    )}        </div>
+                              <Link href="/roster" passHref>
+
+                                <button style={styles.rosterButton}>View Roster Calendar</button>
+
+                              </Link>
+
+                              
+
+                              {user.account_type === "Planner" && (
+
+                                <>
+
+                                  <button
+
+                                    style={{ ...styles.rosterButton, marginLeft: '10px' }}
+
+                                    onClick={() => setIsManageWorkersModalOpen(true)}
+
+                                  >
+
+                                    Manage Workers
+
+                                  </button>
+
+                                  <Link href="/dashboard" passHref>
+
+                                    <button style={{ ...styles.rosterButton, marginLeft: '10px' }}>
+
+                                      Analytics Dashboard
+
+                                    </button>
+
+                                  </Link>
+
+                                  <Link href="/competencies" passHref>
+
+                                    <button style={{ ...styles.rosterButton, marginLeft: '10px' }}>
+
+                                      View Staff Competencies
+
+                                    </button>
+
+                                  </Link>
+
+                                </>
+
+                              )}        </div>
 
         <button onClick={handleLogout} style={styles.logoutButton}>
           Logout

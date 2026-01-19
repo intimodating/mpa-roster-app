@@ -1,0 +1,34 @@
+{
+  "employees": [
+    { "id": "emp1", "proficiency_grade": 9, "team_id": 1, "offset": 0 },
+    { "id": "emp2", "proficiency_grade": 8, "team_id": 1, "offset": 1 },
+    { "id": "emp3", "proficiency_grade": 7, "team_id": 1, "offset": 2 },
+    { "id": "emp4", "proficiency_grade": 9, "team_id": 2, "offset": 0 },
+    { "id": "emp5", "proficiency_grade": 8, "team_id": 2, "offset": 1 },
+    { "id": "emp6", "proficiency_grade": 7, "team_id": 2, "offset": 2 }
+  ],
+  "requests": [
+    {
+      "date": "2026-03-21",
+      "shiftType": "Morning",
+      "location": "East",
+      "required_proficiencies": { "7": 1, "8": 1 }
+    },
+    {
+      "date": "2026-03-21",
+      "shiftType": "Afternoon",
+      "location": "West",
+      "required_proficiencies": { "7": 1, "8": 1 }
+    },
+    {
+      "date": "2026-03-22",
+      "shiftType": "Night",
+      "location": "East",
+      "required_proficiencies": { "9": 1 }
+    }
+  ],
+  "leaveData": {
+    "emp1": ["2026-03-22"]
+  },
+  "scheduling_mode": "team"
+}

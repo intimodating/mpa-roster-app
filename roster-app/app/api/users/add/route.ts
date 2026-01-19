@@ -3,10 +3,10 @@ import { NextResponse } from "next/server";
 
 export async function POST(req: Request) {
     try {
-        const { user_id, password, account_type, proficiency_grade } = await req.json();
+        const { user_id, password, account_type, proficiency_grade, team } = await req.json();
 
-        if (!user_id || !password || !account_type || proficiency_grade === undefined) {
-            return NextResponse.json({ success: false, message: "User ID, password, account type, and proficiency grade are required." }, { status: 400 });
+        if (!user_id || !password || !account_type || proficiency_grade === undefined || team === undefined) {
+            return NextResponse.json({ success: false, message: "User ID, password, account type, proficiency grade, and team are required." }, { status: 400 });
         }
 
         await connectToDatabase();
@@ -21,6 +21,7 @@ export async function POST(req: Request) {
             password, // In a real application, hash this password!
             account_type,
             proficiency_grade: parseInt(proficiency_grade, 10),
+            team: parseInt(team, 10),
         });
 
         await newUser.save();

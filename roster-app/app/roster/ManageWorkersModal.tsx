@@ -5,7 +5,7 @@ interface ManageWorkersModalProps {
 }
 
 type WorkerRequestBody = 
-  | { user_id: string; password?: string; account_type?: 'Planner' | 'Non-Planner'; proficiency_grade?: number; }
+  | { user_id: string; password?: string; account_type?: 'Planner' | 'Non-Planner'; proficiency_grade?: number; team?: number; }
   | { user_id: string; };
 
 const ManageWorkersModal: React.FC<ManageWorkersModalProps> = ({ onClose }) => {
@@ -18,12 +18,14 @@ const ManageWorkersModal: React.FC<ManageWorkersModalProps> = ({ onClose }) => {
   const [addPassword, setAddPassword] = useState('');
   const [addAccountType, setAddAccountType] = useState<'Planner' | 'Non-Planner'>('Non-Planner');
   const [addProficiencyGrade, setAddProficiencyGrade] = useState<number>(1);
+  const [addTeam, setAddTeam] = useState<number | ''>('');
 
   // State for Modify Worker
   const [modifyUserId, setModifyUserId] = useState('');
   const [modifyPassword, setModifyPassword] = useState('');
   const [modifyAccountType, setModifyAccountType] = useState<'Planner' | 'Non-Planner' | ''>('');
   const [modifyProficiencyGrade, setModifyProficiencyGrade] = useState<number | ''>('');
+  const [modifyTeam, setModifyTeam] = useState<number | ''>('');
 
   // State for Delete Worker
   const [deleteUserId, setDeleteUserId] = useState('');
@@ -46,11 +48,13 @@ const ManageWorkersModal: React.FC<ManageWorkersModalProps> = ({ onClose }) => {
           setAddPassword('');
           setAddAccountType('Non-Planner');
           setAddProficiencyGrade(1);
+          setAddTeam('');
         } else if (endpoint === 'modify') {
           setModifyUserId('');
           setModifyPassword('');
           setModifyAccountType('');
           setModifyProficiencyGrade('');
+          setModifyTeam('');
         } else if (endpoint === 'delete') {
           setDeleteUserId('');
         }
@@ -66,24 +70,39 @@ const ManageWorkersModal: React.FC<ManageWorkersModalProps> = ({ onClose }) => {
   };
 
   const handleAddWorker = () => {
+    if (addTeam === '') {
+        setMessage({ type: 'error', text: 'Team field is required.' });
+        return;
+    }
+    if (addTeam < 1 || addTeam > 9) {
+        setMessage({ type: 'error', text: 'Team must be between 1 and 9.' });
+        return;
+    }
     handleSubmit('add', {
       user_id: addUserId,
       password: addPassword,
       account_type: addAccountType,
       proficiency_grade: addProficiencyGrade,
+      team: addTeam as number,
     });
   };
 
   const handleModifyWorker = () => {
+    if (modifyTeam !== '' && (modifyTeam < 1 || modifyTeam > 9)) {
+        setMessage({ type: 'error', text: 'Team must be between 1 and 9.' });
+        return;
+    }
     const updateBody: WorkerRequestBody = { 
       user_id: modifyUserId,
       password: modifyPassword,
       account_type: modifyAccountType === '' ? undefined : modifyAccountType,
-      proficiency_grade: modifyProficiencyGrade === '' ? undefined : modifyProficiencyGrade
+      proficiency_grade: modifyProficiencyGrade === '' ? undefined : modifyProficiencyGrade,
+      team: modifyTeam === '' ? undefined : modifyTeam,
     };
     if (modifyPassword) updateBody.password = modifyPassword;
     if (modifyAccountType) updateBody.account_type = modifyAccountType;
     if (modifyProficiencyGrade !== '') updateBody.proficiency_grade = modifyProficiencyGrade;
+    if (modifyTeam !== '') updateBody.team = modifyTeam as number;
     handleSubmit('update', updateBody);
   };
 
@@ -130,11 +149,15 @@ const ManageWorkersModal: React.FC<ManageWorkersModalProps> = ({ onClose }) => {
             <h3>Add New Worker</h3>
             <div style={modalStyles.inputGroup}>
               <label>User ID:</label>
-              <input type="text" value={addUserId} onChange={(e) => setAddUserId(e.target.value)} style={modalStyles.input} />
+              <input type="text" value={addUserId} onChange={(e) => setAddUserId(e.target.value)} style={modalStyles.input} required />
             </div>
             <div style={modalStyles.inputGroup}>
               <label>Password:</label>
-              <input type="password" value={addPassword} onChange={(e) => setAddPassword(e.target.value)} style={modalStyles.input} />
+              <input type="password" value={addPassword} onChange={(e) => setAddPassword(e.target.value)} style={modalStyles.input} required />
+            </div>
+            <div style={modalStyles.inputGroup}>
+              <label>Team:</label>
+              <input type="number" value={addTeam} min="1" max="9" onChange={(e) => setAddTeam(e.target.value === '' ? '' : parseInt(e.target.value, 10))} style={modalStyles.input} required />
             </div>
             <div style={modalStyles.inputGroup}>
               <label>Account Type:</label>
@@ -163,6 +186,10 @@ const ManageWorkersModal: React.FC<ManageWorkersModalProps> = ({ onClose }) => {
               <input type="password" value={modifyPassword} onChange={(e) => setModifyPassword(e.target.value)} style={modalStyles.input} />
             </div>
             <div style={modalStyles.inputGroup}>
+                <label>New Team (optional):</label>
+                <input type="number" value={modifyTeam} min="1" max="9" onChange={(e) => setModifyTeam(e.target.value === '' ? '' : parseInt(e.target.value, 10))} style={modalStyles.input} />
+            </div>
+            <div style={modalStyles.inputGroup}>
               <label>New Account Type (optional):</label>
               <select value={modifyAccountType} onChange={(e) => setModifyAccountType(e.target.value as 'Planner' | 'Non-Planner' | '')} style={modalStyles.select}>
                 <option value="">No Change</option>
@@ -172,7 +199,7 @@ const ManageWorkersModal: React.FC<ManageWorkersModalProps> = ({ onClose }) => {
             </div>
             <div style={modalStyles.inputGroup}>
               <label>New Proficiency Grade (optional):</label>
-              <input type="number" min="1" max="9" value={modifyProficiencyGrade} onChange={(e) => setModifyProficiencyGrade(parseInt(e.target.value, 10))} style={modalStyles.input} />
+              <input type="number" min="1" max="9" value={modifyProficiencyGrade} onChange={(e) => setModifyProficiencyGrade(e.target.value === '' ? '' : parseInt(e.target.value, 10))} style={modalStyles.input} />
             </div>
             <button onClick={handleModifyWorker} style={modalStyles.actionButton}>Modify Worker</button>
           </div>

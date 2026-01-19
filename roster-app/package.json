@@ -12,9 +12,11 @@
     "init-deploy-count:js": "node scripts/initialize-deploy-count.js",
     "test-db": "dotenv -e .env.local -- npx ts-node scripts/test-db-write.ts",
     "update-deploy-counts": "dotenv -e .env.local -- npx ts-node --project scripts/tsconfig.json scripts/update-deploy-counts.ts",
-    "assign-teams": "cross-env NODE_OPTIONS=\"-r dotenv/config\" npx ts-node scripts/assign-teams.ts"
+    "assign-teams": "cross-env NODE_OPTIONS=\"-r dotenv/config\" npx ts-node scripts/assign-teams.ts",
+    "populate-competencies": "dotenv -e .env.local -- npx ts-node scripts/populate-random-competencies.ts"
   },
   "dependencies": {
+    "@babel/node": "^7.28.0",
     "mongoose": "^8.3.2",
     "next": "^16.0.7",
     "react": "^19.2.1",
