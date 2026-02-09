@@ -72,13 +72,21 @@ export default function HomePage() {
 
                               <Link href="/roster" passHref>
 
-                                <button style={styles.rosterButton}>View Roster Calendar</button>
+                                                                <button style={styles.rosterButton}>View Roster Calendar</button>
 
-                              </Link>
+                                                              </Link>
 
-                              
+                                
 
-                              {user.account_type === "Planner" && (
+                                                              <Link href="/block-leaves-calendar" passHref>
+
+                                                                <button style={{ ...styles.rosterButton, marginLeft: '10px' }}>Block Leaves Calendar</button>
+
+                                                              </Link>
+
+                                                              
+
+                                                              {user.account_type === "Planner" && (
 
                                 <>
 
