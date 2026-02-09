@@ -350,8 +350,7 @@ export default function BlockLeavesCalendarPage() {
                         isOpen={applyModalOpen}
                         onClose={() => setApplyModalOpen(false)}
                         onSuccess={() => {
-                            fetchApprovedLeaves(currentYear, currentMonth);
-                            fetchPendingLeaves(currentYear, currentMonth);
+                            fetchAllLeaves(currentYear, currentMonth, user.account_type === 'Planner' ? null : user.user_id);
                             setApplyModalOpen(false);
                         }}
                         userId={user.user_id}

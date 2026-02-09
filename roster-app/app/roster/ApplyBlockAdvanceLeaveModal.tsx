@@ -88,6 +88,10 @@ export default function ApplyBlockAdvanceLeaveModal({ isOpen, onClose, onSuccess
 
             const result = await response.json();
 
+            if (!response.ok) {
+                throw new Error(result.message || `Request failed with status ${response.status}`);
+            }
+
             if (result.success) {
                 if (result.warning) {
                     setWarning(result.warning);
@@ -95,11 +99,13 @@ export default function ApplyBlockAdvanceLeaveModal({ isOpen, onClose, onSuccess
                 onSuccess();
                 onClose();
             } else {
-                setError(result.message || "Failed to submit leave application.");
+                // This case handles a 2xx response where the application logic still failed.
+                setError(result.message || "The application was not submitted successfully.");
             }
         } catch (err) {
             console.error("Error submitting block leave:", err);
-            setError("An unexpected error occurred. Please try again.");
+            const message = err instanceof Error ? err.message : "An unexpected error occurred. Please try again.";
+            setError(message);
         } finally {
             setIsSubmitting(false);
         }
