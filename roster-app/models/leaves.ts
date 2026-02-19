@@ -13,7 +13,7 @@ const LeaveSchema = new mongoose.Schema({
     },
     leave_type: {
         type: String,
-        enum: ["Annual leave", "Medical leave", "Hospitalisation Leave", "Parental Leave"],
+        enum: ["Annual leave", "Medical leave", "Hospitalisation Leave", "Parental Leave", "Advance Leave", "Block Leave"],
         required: true,
     },
     status: {
@@ -21,6 +21,9 @@ const LeaveSchema = new mongoose.Schema({
         enum: ["Approved", "Rejected", "Pending"],
         default: "Pending",
         required: true,
+    },
+    sub_leave_type: { // Added to capture sub-type for block/advance leaves
+        type: String,
     },
 }, {
     collection: 'Leaves',

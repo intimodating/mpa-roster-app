@@ -1,0 +1,83 @@
+I am adding a new leave management feature to an existing roster scheduling system.
+This feature must be implemented WITHOUT affecting the existing "leaves" collection
+or current leave workflows.
+
+Context:
+- MongoDB is used as the database.
+- There is an existing "leaves" collection that must remain unchanged.
+- I have created two NEW collections:
+  1 Approved_Block_Leaves
+  2 Pending_Block_Leaves
+
+These new collections are used exclusively for BLOCK LEAVE and ADVANCE LEAVE
+applications submitted by non-roster planners and approved by roster planners.
+
+Leave Types:
+- Block Leave
+- Advance Leave
+
+Data Model (Pending_Block_Leaves):
+Each document must contain:
+- user_id
+- start_date
+- end_date
+- leave_type (block / advance)
+- remarks (optional text input)
+- applied_at (date-time in Singapore Time, UTC+8)
+
+Data Model (Approved_Block_Leaves):
+Each document must contain:
+- user_id
+- date
+- leave_type
+
+User Flow – Non-Roster Planner:
+1. User clicks "Apply Block / Advance Leave".
+2. User selects:
+   - leave type
+   - start date
+   - end date
+3. The UI calculates and displays the total number of leave days.
+4. On submit:
+   - For EACH day between start_date and end_date (inclusive),
+     check the approved_block_leaves collection.
+   - If more than 10 users are already approved for ANY day:
+     - Display a warning message that the daily quota is full for the days.
+     - The user may still proceed with submission.
+5. If submitted:
+   - Create a new document in Pending_Block_Leaves.
+
+User Flow – Roster Planner:
+1. Planner navigates to "Leave Applications".
+2. Display all pending_block_leaves:
+   - Sorted by start_date
+   - Then by applied_at
+3. Planner can review remarks and approve or reject applications.
+4. Upon approval:
+   - Move the record from pending_block_leaves to approved_block_leaves by creating an entry in approved_block_leaves for each day in the leave period applied.
+
+UI Requirements:
+Home Page:
+- Add a button: "Block Leaves Calendar"
+
+Block Leaves Calendar Page:
+- Display a 2D matrix view:
+  - Rows: non-roster planners (from users collection)
+  - Columns: each day in the selected month
+- Both planners and non-planners can toggle between months.
+- Approved block/advance leaves should be visually indicated in the matrix.
+
+Role-Based Actions:
+- Non-roster planners:
+  - See the calendar
+  - Button: "Apply Block / Advance Leave"
+- Roster planners:
+  - See the calendar
+  - Button: "Leave Applications"
+
+Take note of any important edge cases or race conditions to handle.
+
+Constraints:
+- Do NOT modify the existing "leaves" collection.
+- Do NOT break existing roster generation logic.
+- Prioritise clarity, correctness, and maintainability.

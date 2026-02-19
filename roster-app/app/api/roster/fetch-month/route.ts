@@ -70,12 +70,16 @@ export async function GET(req: Request) {
                 }
             });
             
-            const leaves = await Leave.find({ ...dateFilter, status: 'Approved' }).select('user_id date -_id');
-            const leavesMap: Record<string, string[]> = {};
+            const leaves = await Leave.find({ ...dateFilter, status: 'Approved' }).select('user_id date leave_type sub_leave_type -_id');
+            const leavesMap: Record<string, { user_id: string; leave_type: string; sub_leave_type?: string }[]> = {};
             leaves.forEach(leave => {
                 const dateKey = leave.date.toISOString().split('T')[0];
                 if (!leavesMap[dateKey]) leavesMap[dateKey] = [];
-                leavesMap[dateKey].push(leave.user_id);
+                leavesMap[dateKey].push({
+                    user_id: leave.user_id,
+                    leave_type: leave.leave_type,
+                    sub_leave_type: leave.sub_leave_type,
+                });
             });
 
             return NextResponse.json({ 

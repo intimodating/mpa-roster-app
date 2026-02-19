@@ -1,6 +1,6 @@
 import { connectToDatabase } from "../../../../lib/mongodb";
 import Pending_Block_Leave from "../../../../models/pending_block_leaves";
-import Approved_Block_Leave from "../../../../models/approved_block_leaves";
+import Leave from "../../../../models/leaves"; // Changed from Approved_Block_Leave
 import { NextResponse } from "next/server";
 import moment from "moment-timezone";
 
@@ -26,21 +26,31 @@ export async function POST(req: Request) {
 
         const { user_id, start_date, end_date, leave_type, sub_leave_type } = pendingLeave;
 
-        // --- Bug Fix 1: Off-by-one date error ---
-        // Use a moment.utc loop to ensure date consistency
         const approvedEntries = [];
         for (let m = moment.utc(start_date); m.isSameOrBefore(end_date); m.add(1, 'days')) {
+            let mappedLeaveType: string;
+            if (leave_type === 'block') {
+                mappedLeaveType = 'Block Leave';
+            } else if (leave_type === 'advance') {
+                mappedLeaveType = 'Advance Leave';
+            } else {
+                // Handle unexpected leave_type, though enum should prevent this
+                mappedLeaveType = leave_type; 
+            }
+
+            console.log(`DEBUG: Original pendingLeave.leave_type: '${leave_type}', Mapped leave_type: '${mappedLeaveType}'`); // Debug log
+
             approvedEntries.push({
                 user_id,
                 date: m.toDate(),
-                leave_type,
-                sub_leave_type,
+                leave_type: mappedLeaveType,
+                sub_leave_type, // Now supported by the Leaves schema
+                status: "Approved", // Set status to Approved
             });
         }
-        // --- End of Bug Fix 1 ---
 
         if (approvedEntries.length > 0) {
-            await Approved_Block_Leave.insertMany(approvedEntries);
+            await Leave.insertMany(approvedEntries); // Insert into Leaves collection
         }
 
         // Delete the pending leave
