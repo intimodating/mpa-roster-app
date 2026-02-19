@@ -7,6 +7,7 @@ import ShiftViewerModal from './ShiftViewerModal';
 import LeaveApplicationModal from './LeaveApplicationModal';
 import GenerateRosterModal from './GenerateRosterModal';
 import LeaveHistoryModal from './LeaveHistoryModal';
+import MatrixView from './MatrixView';
 
 
 // --- INTERFACES ---
@@ -53,6 +54,11 @@ export default function RosterPage() {
   const [isGenerateRosterModalOpen, setIsGenerateRosterModalOpen] = useState(false);
   const [isLeaveHistoryModalOpen, setIsLeaveHistoryModalOpen] = useState(false);
   const [selectedShiftData, setSelectedShiftData] = useState<ShiftData | null>(null);
+  const [viewMode, setViewMode] = useState<'calendar' | 'matrix'>('calendar');
+
+  // AI Summary State
+  const [summary, setSummary] = useState('');
+  const [isSummaryLoading, setIsSummaryLoading] = useState(false);
 
   // --- AUTHENTICATION CHECK ---
   useEffect(() => {
@@ -114,6 +120,40 @@ export default function RosterPage() {
   
   const changeMonth = (delta: number) => {
     setCurrentDate(prev => new Date(prev.getFullYear(), prev.getMonth() + delta, 1));
+    setSummary(''); // Clear summary when month changes
+  };
+
+  const handleGetSummary = async () => {
+    if (!user) {
+        alert("User data not found. Cannot get summary.");
+        return;
+    }
+    setIsSummaryLoading(true);
+    setSummary('');
+    try {
+        const response = await fetch('/api/roster/summarize', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({
+                year: currentDate.getFullYear(),
+                month: currentDate.getMonth() + 1, // API expects month 1-12
+                userId: user.user_id,
+            }),
+        });
+
+        const data = await response.json();
+        if (response.ok) {
+            setSummary(data.summary);
+        } else {
+            throw new Error(data.error || 'Failed to generate summary.');
+        }
+    } catch (error) {
+        const message = error instanceof Error ? error.message : 'An unknown error occurred.';
+        alert(`Error generating summary: ${message}`);
+        setSummary('');
+    } finally {
+        setIsSummaryLoading(false);
+    }
   };
 
   const handleDayClick = (dateKey: string) => {
@@ -204,10 +244,35 @@ export default function RosterPage() {
         <h1 style={styles.header}>Roster Calendar for {user.name}</h1>
         
         <div style={styles.buttonContainer}>
+          <button
+            style={{
+              ...styles.plannerButton,
+              backgroundColor: viewMode === 'calendar' ? '#007bff' : '#495057', // Highlight active view
+              backgroundImage: 'none',
+              marginRight: '10px'
+            }}
+            onClick={() => setViewMode('calendar')}
+          >
+            Calendar View
+          </button>
+          <button
+            style={{
+              ...styles.plannerButton,
+              backgroundColor: viewMode === 'matrix' ? '#007bff' : '#495057', // Highlight active view
+              backgroundImage: 'none',
+              marginRight: '10px'
+            }}
+            onClick={() => setViewMode('matrix')}
+          >
+            Matrix View
+          </button>
           {isPlanner && (
             <>
               <button style={styles.plannerButton} onClick={() => setIsGenerateRosterModalOpen(true)}>
                 Generate Roster
+              </button>
+              <button style={{...styles.plannerButton, background: 'linear-gradient(45deg, #5833f0 0%, #3c8ce6 50%, #23ccdc 100%)'}} onClick={handleGetSummary} disabled={isSummaryLoading}>
+                {isSummaryLoading ? 'Generating...' : 'Get AI Summary'}
               </button>
               <button style={styles.plannerButton} onClick={() => router.push('/leave-requests')}>
                 Leave requests
@@ -225,15 +290,37 @@ export default function RosterPage() {
           </button>
         </div>
 
-        <CalendarView
-          currentDate={currentDate}
-          changeMonth={changeMonth}
-          rosterData={rosterData}
-          leavesData={leavesData}
-          onDayClick={handleDayClick}
-          user={user}
-          isPlanner={isPlanner}
-        />
+        {isPlanner && (isSummaryLoading || summary) && (
+            <div style={styles.summaryContainer}>
+                <h3 style={styles.summaryHeader}>AI Roster Summary</h3>
+                {isSummaryLoading ? (
+                    <p>Generating summary, please wait...</p>
+                ) : (
+                    <pre style={styles.summaryContent}>{summary}</pre>
+                )}
+            </div>
+        )}
+
+        {viewMode === 'calendar' ? (
+          <CalendarView
+            currentDate={currentDate}
+            changeMonth={changeMonth}
+            rosterData={rosterData}
+            leavesData={leavesData}
+            onDayClick={handleDayClick}
+            user={user}
+            isPlanner={isPlanner}
+          />
+        ) : (
+          <MatrixView
+            currentDate={currentDate}
+            rosterData={rosterData}
+            leavesData={leavesData}
+            user={user}
+            isPlanner={isPlanner}
+            changeMonth={changeMonth}
+          />
+        )}
       </div>
 
       {isModalOpen && selectedShiftData && isPlanner && (
@@ -448,6 +535,28 @@ const styles: Record<string, React.CSSProperties> = {
     backgroundColor: 'transparent',
     color: '#fff',
   },
+  summaryContainer: {
+    backgroundColor: '#3b3b3b',
+    borderRadius: '8px',
+    padding: '20px',
+    margin: '0 auto 30px auto',
+    maxWidth: '95%',
+    textAlign: 'left',
+  },
+  summaryHeader: {
+    marginTop: 0,
+    color: '#fff',
+    borderBottom: '2px solid #007bff',
+    paddingBottom: '10px',
+    marginBottom: '15px',
+  },
+  summaryContent: {
+    whiteSpace: 'pre-wrap',
+    wordWrap: 'break-word',
+    color: '#eee',
+    maxHeight: '200px',
+    overflowY: 'auto',
+  }
 };
 
 const calStyles: Record<string, React.CSSProperties> = {

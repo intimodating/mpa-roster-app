@@ -78,8 +78,8 @@ export default function BlockLeavesCalendarPage() {
         try {
             const monthStr = String(month + 1).padStart(2, '0');
 
-            // Fetch approved leaves
-            const approvedRes = await fetch(`/api/block-leave/fetch-approved-month?year=${year}&month=${monthStr}`);
+            // Fetch approved leaves from the new route
+            const approvedRes = await fetch(`/api/leave/fetch-approved-block-advance-month?year=${year}&month=${monthStr}`);
             const approvedData = await approvedRes.json();
             if (approvedData.success) {
                 setApprovedLeaves(approvedData.data);
@@ -369,6 +369,7 @@ export default function BlockLeavesCalendarPage() {
                     <LeaveApplicationsModal
                         isOpen={leaveApplicationsModalOpen}
                         onClose={() => setLeaveApplicationsModalOpen(false)}
+                        onLeaveActionSuccess={() => fetchAllLeaves(currentYear, currentMonth, user.account_type === 'Planner' ? null : user.user_id)}
                     />
                 )}
             </div>

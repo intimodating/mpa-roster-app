@@ -6,20 +6,10 @@ import moment from 'moment-timezone';
 interface LeaveApplicationsModalProps {
     isOpen: boolean;
     onClose: () => void;
+    onLeaveActionSuccess: () => void; // New prop for parent refresh
 }
 
-interface PendingBlockLeave {
-    _id: string;
-    user_id: string;
-    start_date: string; // ISO string
-    end_date: string; // ISO string
-    leave_type: "block" | "advance";
-    sub_leave_type?: string;
-    remarks?: string;
-    applied_at: string; // ISO string
-}
-
-export default function LeaveApplicationsModal({ isOpen, onClose }: LeaveApplicationsModalProps) {
+export default function LeaveApplicationsModal({ isOpen, onClose, onLeaveActionSuccess }: LeaveApplicationsModalProps) {
     const [pendingLeaves, setPendingLeaves] = useState<PendingBlockLeave[]>([]);
     const [isLoading, setIsLoading] = useState(true);
     const [error, setError] = useState<string | null>(null);
@@ -65,6 +55,7 @@ export default function LeaveApplicationsModal({ isOpen, onClose }: LeaveApplica
             if (result.success) {
                 alert("Leave approved successfully!");
                 fetchPendingLeaves(); // Refresh the list
+                onLeaveActionSuccess(); // Notify parent to refresh calendar
             } else {
                 alert(result.message || "Failed to approve leave.");
             }
@@ -99,6 +90,7 @@ export default function LeaveApplicationsModal({ isOpen, onClose }: LeaveApplica
                 setRejectionReason("");
                 setSelectedLeaveIdToReject(null);
                 fetchPendingLeaves(); // Refresh the list
+                onLeaveActionSuccess(); // Notify parent to refresh calendar
             } else {
                 alert(result.message || "Failed to reject leave.");
             }
