@@ -6,8 +6,8 @@ const RosterSchema = new mongoose.Schema({
     user_id: { 
         type: String, 
         required: true,
-        // Optional: If you want to use Mongoose population, 
-        // you would use type: mongoose.Schema.Types.ObjectId, ref: 'User'
+        // Optional: If you want t                                                    o use Mongoose population, 
+        // you would use type: mongoo111se.Schema.Types.ObjectId, ref: 'User'
     },
     
     // The date of the shift (stored as a date type for easy querying)
@@ -28,6 +28,10 @@ const RosterSchema = new mongoose.Schema({
         type: String,
         enum: ['East', 'West'],
         required: true,
+    },
+
+    assigned_console: {
+        type: String,
     },
 
     // Optional: Notes or role for that specific shift

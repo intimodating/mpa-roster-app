@@ -23,21 +23,21 @@ export async function GET(req: NextRequest, context: { params: { date: string } 
             }
         };
 
-        // Fetch user_id, shift_type, and location
-        const assignments = await Roster.find(dateFilter).select('user_id shift_type location -_id');
+        // Fetch user_id, shift_type, location, and assigned_console
+        const assignments = await Roster.find(dateFilter).select('user_id shift_type location assigned_console -_id');
         
         // Initialize the data structure the client expects
         const shiftData = {
             date: date,
             East: {
-                Morning: [] as string[],
-                Afternoon: [] as string[],
-                Night: [] as string[],
+                Morning: [] as { user_id: string; assigned_console?: string }[],
+                Afternoon: [] as { user_id: string; assigned_console?: string }[],
+                Night: [] as { user_id: string; assigned_console?: string }[],
             },
             West: {
-                Morning: [] as string[],
-                Afternoon: [] as string[],
-                Night: [] as string[],
+                Morning: [] as { user_id: string; assigned_console?: string }[],
+                Afternoon: [] as { user_id: string; assigned_console?: string }[],
+                Night: [] as { user_id: string; assigned_console?: string }[],
             }
         };
 
@@ -52,13 +52,13 @@ export async function GET(req: NextRequest, context: { params: { date: string } 
 
         // Populate the structure
         assignments.forEach(assignment => {
-            const { user_id, shift_type, location } = assignment;
+            const { user_id, shift_type, location, assigned_console } = assignment;
             if (location === 'East' || location === 'West') {
                 if (shift_type === 'Morning' || shift_type === 'Afternoon' || shift_type === 'Night') {
                     // @ts-expect-error: Dynamic access to shiftData[location][shift_type]
                     if (shiftData[location][shift_type]) {
                         // @ts-expect-error: Dynamic access to shiftData[location][shift_type]
-                        shiftData[location][shift_type].push(user_id);
+                        shiftData[location][shift_type].push({ user_id, assigned_console });
                     }
                 }
             }

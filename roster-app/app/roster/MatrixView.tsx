@@ -124,13 +124,13 @@ const MatrixView: React.FC<MatrixViewProps> = React.memo(({ currentDate, rosterD
 
                     if (dayRoster) {
                       // Check East shifts
-                      if (dayRoster.East.Morning.includes(user.user_id)) shifts.push('1');
-                      if (dayRoster.East.Afternoon.includes(user.user_id)) shifts.push('2');
-                      if (dayRoster.East.Night.includes(user.user_id)) shifts.push('3');
+                      if (dayRoster.East.Morning.some(w => w.user_id === user.user_id)) shifts.push('1');
+                      if (dayRoster.East.Afternoon.some(w => w.user_id === user.user_id)) shifts.push('2');
+                      if (dayRoster.East.Night.some(w => w.user_id === user.user_id)) shifts.push('3');
                       // Check West shifts
-                      if (dayRoster.West.Morning.includes(user.user_id)) shifts.push('1');
-                      if (dayRoster.West.Afternoon.includes(user.user_id)) shifts.push('2');
-                      if (dayRoster.West.Night.includes(user.user_id)) shifts.push('3');
+                      if (dayRoster.West.Morning.some(w => w.user_id === user.user_id)) shifts.push('1');
+                      if (dayRoster.West.Afternoon.some(w => w.user_id === user.user_id)) shifts.push('2');
+                      if (dayRoster.West.Night.some(w => w.user_id === user.user_id)) shifts.push('3');
                     }
                     
                     const cellContent = isOnLeave ? 'L' : [...new Set(shifts)].join(',') || '';

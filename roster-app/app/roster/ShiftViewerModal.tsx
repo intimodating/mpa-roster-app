@@ -3,17 +3,28 @@
 "use client";
 import React, { useState } from 'react';
 
+interface WorkerAssignment {
+    user_id: string;
+    assigned_console?: string;
+}
+
 interface ShiftDetails {
-    Morning: string[];
-    Afternoon: string[];
-    Night: string[];
+    Morning: WorkerAssignment[];
+    Afternoon: WorkerAssignment[];
+    Night: WorkerAssignment[];
+}
+
+interface LeaveDetail {
+    user_id: string;
+    leave_type: string;
+    sub_leave_type?: string;
 }
 
 interface ShiftData {
     date: string;
     East: ShiftDetails;
     West: ShiftDetails;
-    leaves?: string[]; // Optional: user_ids of people on leave
+    leaves?: LeaveDetail[]; // Optional: people on leave
 }
 
 interface Props {
@@ -21,10 +32,41 @@ interface Props {
     onClose: () => void;
 }
 
+const CONSOLE_ORDER = [
+    "East Control", "West Control", "VTIS East", "VTIS West", "Keppel Control",
+    "Sembawang Control", "Pasir Panjang Control", "Jurong Control", "VTIS Central",
+    "Sembawang Control MTC", "Pasir Panjang Control MTC", "VTIC MTC", "PSU",
+    "STW(PB)", "GMDSS", "Vista DO"
+];
+
 const ShiftViewerModal: React.FC<Props> = ({ shiftData, onClose }) => {
     const [activeLocation, setActiveLocation] = useState<'East' | 'West'>('East');
 
-    const currentShiftDetails = shiftData[activeLocation];
+    const sortWorkers = (workers: WorkerAssignment[]) => {
+        return [...workers].sort((a, b) => {
+            const indexA = a.assigned_console ? CONSOLE_ORDER.indexOf(a.assigned_console) : 999;
+            const indexB = b.assigned_console ? CONSOLE_ORDER.indexOf(b.assigned_console) : 999;
+            
+            if (indexA !== indexB) {
+                return (indexA === -1 ? 999 : indexA) - (indexB === -1 ? 999 : indexB);
+            }
+            return a.user_id.localeCompare(b.user_id);
+        });
+    };
+
+    const renderEmployeeList = (workers: WorkerAssignment[]) => {
+        if (workers.length === 0) {
+            return <li style={styles.employeeItem}>No assignments</li>;
+        }
+
+        const sorted = sortWorkers(workers);
+        return sorted.map(emp => (
+            <li key={emp.user_id} style={styles.employeeItem}>
+                <span style={styles.workerId}>{emp.user_id}</span>
+                {emp.assigned_console && <span style={styles.consoleTag}>{emp.assigned_console}</span>}
+            </li>
+        ));
+    };
 
     return (
         <div style={styles.overlay}>
@@ -35,7 +77,7 @@ const ShiftViewerModal: React.FC<Props> = ({ shiftData, onClose }) => {
                     <div style={styles.leavesContainer}>
                         <h3 style={styles.shiftTitle}>On Leave</h3>
                         <ul style={styles.employeeList}>
-                            {shiftData.leaves.map(emp => <li key={emp} style={styles.employeeItem}>{emp}</li>)}
+                            {shiftData.leaves.map(leave => <li key={leave.user_id} style={styles.employeeItem}>{leave.user_id}</li>)}
                         </ul>
                     </div>
                 )}
@@ -59,28 +101,19 @@ const ShiftViewerModal: React.FC<Props> = ({ shiftData, onClose }) => {
                     <div style={styles.shiftColumn}>
                         <h3 style={styles.shiftTitle}>Morning Shift ({activeLocation})</h3>
                         <ul style={styles.employeeList}>
-                            {currentShiftDetails.Morning.length > 0 ?
-                                currentShiftDetails.Morning.map(emp => <li key={emp} style={styles.employeeItem}>{emp}</li>) :
-                                <li style={styles.employeeItem}>No assignments</li>
-                            }
+                            {renderEmployeeList(shiftData[activeLocation].Morning)}
                         </ul>
                     </div>
                     <div style={styles.shiftColumn}>
                         <h3 style={styles.shiftTitle}>Afternoon Shift ({activeLocation})</h3>
                         <ul style={styles.employeeList}>
-                            {currentShiftDetails.Afternoon.length > 0 ?
-                                currentShiftDetails.Afternoon.map(emp => <li key={emp} style={styles.employeeItem}>{emp}</li>) :
-                                <li style={styles.employeeItem}>No assignments</li>
-                            }
+                            {renderEmployeeList(shiftData[activeLocation].Afternoon)}
                         </ul>
                     </div>
                     <div style={styles.shiftColumn}>
                         <h3 style={styles.shiftTitle}>Night Shift ({activeLocation})</h3>
                         <ul style={styles.employeeList}>
-                            {currentShiftDetails.Night.length > 0 ?
-                                currentShiftDetails.Night.map(emp => <li key={emp} style={styles.employeeItem}>{emp}</li>) :
-                                <li style={styles.employeeItem}>No assignments</li>
-                            }
+                            {renderEmployeeList(shiftData[activeLocation].Night)}
                         </ul>
                     </div>
                 </div>
@@ -144,7 +177,20 @@ const styles: Record<string, React.CSSProperties> = {
         color: '#ccc',
     },
     employeeItem: {
-        padding: '5px 0',
+        padding: '8px 0',
+        display: 'flex',
+        flexDirection: 'column',
+        borderBottom: '1px solid #444',
+    },
+    workerId: {
+        fontWeight: 'bold',
+        color: '#fff',
+    },
+    consoleTag: {
+        fontSize: '0.8em',
+        color: '#aaa',
+        fontStyle: 'italic',
+        marginTop: '2px',
     },
     closeButton: {
         display: 'block',
