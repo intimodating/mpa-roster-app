@@ -1,8 +1,14 @@
 // types/roster.ts
-interface ShiftDetails {
-  Morning: string[];
-  Afternoon: string[];
-  Night: string[];
+
+export interface WorkerAssignment {
+  user_id: string;
+  assigned_console?: string;
+}
+
+export interface ShiftDetails {
+  Morning: (string | WorkerAssignment)[];
+  Afternoon: (string | WorkerAssignment)[];
+  Night: (string | WorkerAssignment)[];
 }
 
 export interface ShiftData {

@@ -17,10 +17,15 @@ interface UserData {
   account_type: "Planner" | "Non-Planner" | string;
 }
 
+export interface WorkerAssignment {
+  user_id: string;
+  assigned_console?: string;
+}
+
 interface ShiftDetails {
-  Morning: string[];
-  Afternoon: string[];
-  Night: string[];
+  Morning: WorkerAssignment[];
+  Afternoon: WorkerAssignment[];
+  Night: WorkerAssignment[];
 }
 
 export interface ShiftData { // Added export
@@ -33,7 +38,7 @@ export interface ShiftData { // Added export
 // RosterMap is a map of dateKey ('YYYY-MM-DD') to ShiftData
 export type RosterMap = Record<string, ShiftData>; // Added export
 type UserStatusMap = Record<string, string>;
-type LeavesMap = Record<string, string[]>;
+type LeavesMap = Record<string, { user_id: string; leave_type: string; sub_leave_type?: string }[]>;
 
 // --- MAIN COMPONENT ---
 export default function RosterPage() {

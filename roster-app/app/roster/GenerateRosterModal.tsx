@@ -10,8 +10,8 @@ interface GenerateRosterModalProps {
 }
 
 type WorkerRequirements = {
-  [location: string]: { // "East" or "West"
-    [proficiencyGrade: string]: number; // "1", "2", ..., "9" : count
+  [location: string]: { 
+    [key: string]: number; 
   };
 };
 
@@ -20,16 +20,29 @@ const initialWorkerRequirements: WorkerRequirements = {
   West: { '1': 1, '2': 1, '3': 1, '4': 0, '5': 0, '6': 0, '7': 0, '8': 0, '9': 0 },
 };
 
+const COMPETENCIES = [
+    "East Control", "West Control", "VTIS East", "VTIS West", "Keppel Control",
+    "Sembawang Control", "Pasir Panjang Control", "Jurong Control", "VTIS Central",
+    "Sembawang Control MTC", "Pasir Panjang Control MTC", "VTIC MTC", "PSU",
+    "STW(PB)", "GMDSS", "Vista DO"
+];
+
+const initialCompetencyRequirements: WorkerRequirements = {
+    East: COMPETENCIES.reduce((acc, comp) => ({ ...acc, [comp]: 0 }), {}),
+    West: COMPETENCIES.reduce((acc, comp) => ({ ...acc, [comp]: 0 }), {}),
+};
+
 const GenerateRosterModal: React.FC<GenerateRosterModalProps> = ({ onClose, onApprove }) => {
   const [startDate, setStartDate] = useState('');
   const [endDate, setEndDate] = useState('');
   const [workerRequirements, setWorkerRequirements] = useState<WorkerRequirements>(initialWorkerRequirements);
-  const [rosterPreview, setRosterPreview] = useState<RosterPreview | null>(null);
+  const [competencyRequirements, setCompetencyRequirements] = useState<WorkerRequirements>(initialCompetencyRequirements);
+  const [rosterPreview, setRosterPreview] = useState<RosterMap | null>(null);
   const [isLoading, setIsLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [activeLocation, setActiveLocation] = useState<'East' | 'West'>('East');
   const [progress, setProgress] = useState(0);
-  const [schedulingMode, setSchedulingMode] = useState<'individual' | 'team'>('individual');
+  const [schedulingMode, setSchedulingMode] = useState<'individual' | 'team' | 'competency'>('individual');
 
   useEffect(() => {
     if (isLoading) {
@@ -60,6 +73,16 @@ const GenerateRosterModal: React.FC<GenerateRosterModalProps> = ({ onClose, onAp
     }));
   };
 
+  const handleCompetencyChange = (location: string, competency: string, value: number) => {
+    setCompetencyRequirements(prev => ({
+      ...prev,
+      [location]: {
+        ...prev[location],
+        [competency]: value,
+      },
+    }));
+  };
+
   const handleGenerate = async () => {
     if (!startDate || !endDate) {
       setError('Please select a start and end date.');
@@ -68,10 +91,11 @@ const GenerateRosterModal: React.FC<GenerateRosterModalProps> = ({ onClose, onAp
     setIsLoading(true);
     setError(null);
     try {
+      const requirements = schedulingMode === 'competency' ? competencyRequirements : workerRequirements;
       const res = await fetch('/api/roster/generate', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ startDate, endDate, workerRequirements, schedulingMode }),
+        body: JSON.stringify({ startDate, endDate, workerRequirements: requirements, schedulingMode }),
       });
       const data = await res.json();
       if (data.logs) {
@@ -129,6 +153,37 @@ const GenerateRosterModal: React.FC<GenerateRosterModalProps> = ({ onClose, onAp
     );
   };
 
+  const renderCompetencyRequirements = (location: 'East' | 'West') => {
+    return (
+      <div style={styles.competenciesContainer}>
+        {COMPETENCIES.map(comp => (
+          <div key={comp} style={styles.competencyInput}>
+            <label style={styles.competencyLabel}>{comp}:</label>
+            <input
+              type="number"
+              min="0"
+              value={competencyRequirements[location][comp]}
+              onChange={(e) => handleCompetencyChange(location, comp, parseInt(e.target.value, 10) || 0)}
+              style={styles.gradeInputField}
+            />
+          </div>
+        ))}
+      </div>
+    );
+  };
+
+  const renderAssignments = (assignments: (string | any)[]) => {
+    if (!assignments || assignments.length === 0) return '';
+    return assignments.map(entry => {
+      if (typeof entry === 'object' && entry !== null) {
+        return entry.assigned_console 
+          ? `${entry.user_id} (${entry.assigned_console})` 
+          : entry.user_id;
+      }
+      return entry;
+    }).join(', ');
+  };
+
   return (
     <div style={styles.overlay}>
       <div style={styles.modal}>
@@ -148,7 +203,7 @@ const GenerateRosterModal: React.FC<GenerateRosterModalProps> = ({ onClose, onAp
           <>
             <div style={styles.inputGroup}>
               <label>Scheduling Mode:</label>
-              <div style={{ display: 'flex', gap: '20px', marginTop: '10px' }}>
+              <div style={{ display: 'flex', gap: '20px', marginTop: '10px', flexWrap: 'wrap' }}>
                 <label style={{ display: 'flex', alignItems: 'center' }}>
                   <input
                     type="radio"
@@ -168,6 +223,16 @@ const GenerateRosterModal: React.FC<GenerateRosterModalProps> = ({ onClose, onAp
                     style={{ marginRight: '5px' }}
                   />
                   Team-based
+                </label>
+                <label style={{ display: 'flex', alignItems: 'center' }}>
+                  <input
+                    type="radio"
+                    value="competency"
+                    checked={schedulingMode === 'competency'}
+                    onChange={() => setSchedulingMode('competency')}
+                    style={{ marginRight: '5px' }}
+                  />
+                  Competency-based
                 </label>
               </div>
             </div>
@@ -196,8 +261,8 @@ const GenerateRosterModal: React.FC<GenerateRosterModalProps> = ({ onClose, onAp
             </div>
 
             <div style={styles.locationContent}>
-              <h3>Required Workers for {activeLocation} Location</h3>
-              {renderLocationRequirements(activeLocation)}
+              <h3>Required Workers for {activeLocation} Location ({schedulingMode === 'competency' ? 'Competencies' : 'Grades'})</h3>
+              {schedulingMode === 'competency' ? renderCompetencyRequirements(activeLocation) : renderLocationRequirements(activeLocation)}
             </div>
 
             <div style={styles.buttonContainer}>
@@ -232,12 +297,12 @@ const GenerateRosterModal: React.FC<GenerateRosterModalProps> = ({ onClose, onAp
                 {Object.entries(rosterPreview).map(([date, shifts]: [string, ShiftData]) => (
                   <tr key={date}>
                     <td style={styles.td}>{date}</td>
-                    <td style={styles.td}>{shifts.East.Morning.join(', ')}</td>
-                    <td style={styles.td}>{shifts.East.Afternoon.join(', ')}</td>
-                    <td style={styles.td}>{shifts.East.Night.join(', ')}</td>
-                    <td style={styles.td}>{shifts.West.Morning.join(', ')}</td>
-                    <td style={styles.td}>{shifts.West.Afternoon.join(', ')}</td>
-                    <td style={styles.td}>{shifts.West.Night.join(', ')}</td>
+                    <td style={styles.td}>{renderAssignments(shifts.East.Morning)}</td>
+                    <td style={styles.td}>{renderAssignments(shifts.East.Afternoon)}</td>
+                    <td style={styles.td}>{renderAssignments(shifts.East.Night)}</td>
+                    <td style={styles.td}>{renderAssignments(shifts.West.Morning)}</td>
+                    <td style={styles.td}>{renderAssignments(shifts.West.Afternoon)}</td>
+                    <td style={styles.td}>{renderAssignments(shifts.West.Night)}</td>
                   </tr>
                 ))}
               </tbody>
@@ -297,6 +362,28 @@ const styles: Record<string, React.CSSProperties> = {
         padding: '10px',
         border: '1px solid #444',
         borderRadius: '8px',
+      },
+      competenciesContainer: {
+        display: 'grid',
+        gridTemplateColumns: 'repeat(auto-fit, minmax(180px, 1fr))',
+        gap: '10px',
+        marginTop: '15px',
+        padding: '10px',
+        border: '1px solid #444',
+        borderRadius: '8px',
+      },
+      competencyInput: {
+        display: 'flex',
+        flexDirection: 'column',
+        alignItems: 'flex-start',
+        marginBottom: '10px',
+        padding: '5px',
+      },
+      competencyLabel: {
+        fontSize: '0.85em',
+        marginBottom: '5px',
+        textAlign: 'left',
+        width: '100%',
       },
       gradeInput: {
         display: 'flex',

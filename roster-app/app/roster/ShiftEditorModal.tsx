@@ -8,17 +8,28 @@ interface UserDetails {
     proficiency_grade: number;
 }
 
+interface WorkerAssignment {
+    user_id: string;
+    assigned_console?: string;
+}
+
 interface ShiftDetails {
-    Morning: string[];
-    Afternoon: string[];
-    Night: string[];
+    Morning: WorkerAssignment[];
+    Afternoon: WorkerAssignment[];
+    Night: WorkerAssignment[];
+}
+
+interface LeaveDetail {
+    user_id: string;
+    leave_type: string;
+    sub_leave_type?: string;
 }
 
 interface ShiftData {
     date: string;
     East: ShiftDetails;
     West: ShiftDetails;
-    leaves?: string[];
+    leaves?: LeaveDetail[];
 }
 
 interface ModalProps {
@@ -28,7 +39,7 @@ interface ModalProps {
 }
 
 // --- SUB-COMPONENT: ShiftLane ---
-const ShiftLane: React.FC<any> = ({ location, shiftType, userIds, userLookup, onRemove, onAdd, availableUsers }) => {
+const ShiftLane: React.FC<any> = ({ location, shiftType, workers, userLookup, onRemove, onAdd, availableUsers }) => {
     const [searchTerm, setSearchTerm] = useState('');
 
     const filteredUsers = searchTerm
@@ -43,33 +54,33 @@ const ShiftLane: React.FC<any> = ({ location, shiftType, userIds, userLookup, on
         setSearchTerm('');
     };
 
-    // Sort userIds by proficiency_grade in ascending order
-    const sortedUserIds = useMemo(() => {
-        return [...userIds].sort((idA, idB) => {
-            const userA = userLookup[idA];
-            const userB = userLookup[idB];
+    // Sort workers by proficiency_grade in ascending order
+    const sortedWorkers = useMemo(() => {
+        return [...workers].sort((a, b) => {
+            const userA = userLookup[a.user_id];
+            const userB = userLookup[b.user_id];
 
-            // Default to -1 if user data is missing, so they appear at the beginning (or end, depending on default sort)
             const gradeA = userA?.proficiency_grade ?? -1; 
             const gradeB = userB?.proficiency_grade ?? -1;
 
             return gradeA - gradeB;
         });
-    }, [userIds, userLookup]); // Re-sort only if userIds or userLookup changes
+    }, [workers, userLookup]);
 
     return (
         <div>
             <h3 style={modalStyles.shiftHeader}>{shiftType} Shift ({location})</h3>
             <div style={userListStyles.container}>
-                {sortedUserIds.length === 0 ? (
+                {sortedWorkers.length === 0 ? (
                     <p style={userListStyles.emptyText}>No users assigned.</p>
-                ) : sortedUserIds.map(userId => (
-                    <div key={userId} style={userListStyles.userItem}>
+                ) : sortedWorkers.map(worker => (
+                    <div key={worker.user_id} style={userListStyles.userItem}>
                         <span>
-                            <strong style={{color: '#82ca9d'}}>{userLookup[userId]?.name || 'Unknown User'}</strong>
-                            {` (${userId}) - T${userLookup[userId]?.team || 'N/A'}, P${userLookup[userId]?.proficiency_grade || 'N/A'}`}
+                            <strong style={{color: '#82ca9d'}}>{userLookup[worker.user_id]?.name || 'Unknown User'}</strong>
+                            {` (${worker.user_id}) - T${userLookup[worker.user_id]?.team || 'N/A'}, P${userLookup[worker.user_id]?.proficiency_grade || 'N/A'}`}
+                            {worker.assigned_console && <span style={{ color: '#aaa', fontStyle: 'italic' }}> ({worker.assigned_console})</span>}
                         </span>
-                        <button onClick={() => onRemove(location, shiftType, userId)} style={userListStyles.removeButton}>&times;</button>
+                        <button onClick={() => onRemove(location, shiftType, worker.user_id)} style={userListStyles.removeButton}>&times;</button>
                     </div>
                 ))}
             </div>
@@ -126,9 +137,9 @@ const ShiftEditorModal: React.FC<ModalProps> = ({ shiftData, onClose, onSave }) 
 
     const busyUsers = useMemo(() => {
         const busy = new Set<string>();
-        Object.values(shifts.East).forEach(arr => arr.forEach(id => busy.add(id)));
-        Object.values(shifts.West).forEach(arr => arr.forEach(id => busy.add(id)));
-        shifts.leaves?.forEach(id => busy.add(id));
+        Object.values(shifts.East).forEach(arr => arr.forEach(w => busy.add(w.user_id)));
+        Object.values(shifts.West).forEach(arr => arr.forEach(w => busy.add(w.user_id)));
+        shifts.leaves?.forEach(leave => busy.add(leave.user_id));
         return busy;
     }, [shifts]);
 
@@ -141,7 +152,7 @@ const ShiftEditorModal: React.FC<ModalProps> = ({ shiftData, onClose, onSave }) 
             ...prev,
             [location]: {
                 ...prev[location],
-                [shiftType]: prev[location][shiftType].filter(id => id !== userId),
+                [shiftType]: prev[location][shiftType].filter(w => w.user_id !== userId),
             }
         }));
     };
@@ -151,7 +162,7 @@ const ShiftEditorModal: React.FC<ModalProps> = ({ shiftData, onClose, onSave }) 
             ...prev,
             [location]: {
                 ...prev[location],
-                [shiftType]: [...prev[location][shiftType], userId],
+                [shiftType]: [...prev[location][shiftType], { user_id: userId }],
             }
         }));
     };
@@ -164,7 +175,7 @@ const ShiftEditorModal: React.FC<ModalProps> = ({ shiftData, onClose, onSave }) 
                 {shiftData.leaves && shiftData.leaves.length > 0 && (
                     <div style={modalStyles.leavesContainer}>
                         <h3 style={modalStyles.shiftHeader}>On Leave:</h3>
-                        <p>{shiftData.leaves.map(id => userLookup[id]?.name || id).join(', ')}</p>
+                        <p>{shiftData.leaves.map(leave => userLookup[leave.user_id]?.name || leave.user_id).join(', ')}</p>
                     </div>
                 )}
 
@@ -189,7 +200,7 @@ const ShiftEditorModal: React.FC<ModalProps> = ({ shiftData, onClose, onSave }) 
                             key={`${activeLocation}-${shiftType}`}
                             location={activeLocation}
                             shiftType={shiftType}
-                            userIds={shifts[activeLocation][shiftType]}
+                            workers={shifts[activeLocation][shiftType as keyof ShiftDetails]}
                             userLookup={userLookup}
                             onRemove={handleRemoveUser}
                             onAdd={handleAddUser}

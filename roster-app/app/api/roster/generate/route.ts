@@ -1,11 +1,12 @@
 import { connectToDatabase, User } from "../../../../lib/mongoose-client";
 import Roster from "../../../../models/roster";
 import Leave from "../../../../models/leaves";
+import Competency from "../../../../models/competencies";
 import { NextResponse } from "next/server";
 
 interface WorkerRequirements {
     [location: string]: { 
-      [proficiencyGrade: string]: number; 
+      [key: string]: number; // Can be proficiencyGrade or competencyName
     };
   }
 
@@ -13,26 +14,28 @@ interface GeneratePayload {
     startDate: string;
     endDate: string;
     workerRequirements: WorkerRequirements;
-    schedulingMode: 'individual' | 'team'; // Add this line
+    schedulingMode: 'individual' | 'team' | 'competency'; // Updated
 }
 
 interface Employee {
     id: string;
     proficiency_grade: number;
-    team?: number; // Add this line
+    team?: number;
+    competencies?: string[]; // Added
 }
 
 interface RequestItem {
     date: string;
     location: string;
     shiftType: 'Morning' | 'Afternoon' | 'Night';
-    required_proficiencies: WorkerRequirements[string];
+    required_proficiencies?: WorkerRequirements[string];
+    required_competencies?: WorkerRequirements[string]; // Added
 }
 
 type GeneratedRoster = {
     [date: string]: {
         [location: string]: {
-            [shiftType: string]: string[];
+            [shiftType: string]: (string | { user_id: string; assigned_console?: string })[];
         };
     };
 };
@@ -40,7 +43,7 @@ type GeneratedRoster = {
 interface PythonRosterResult {
     [date: string]: {
         [location: string]: {
-            [shiftType: string]: string[];
+            [shiftType: string]: (string | { user_id: string; assigned_console?: string })[];
         };
     };
 }
@@ -68,7 +71,7 @@ async function generateRosterWithPython(
     employees: Employee[], 
     requests: RequestItem[], 
     leaveData: Record<string, string[]>,
-    schedulingMode: 'individual' | 'team' // Add this
+    schedulingMode: 'individual' | 'team' | 'competency' // Added 'competency'
 ): Promise<PythonRosterResult | PythonValidationError> {
     let rosterGeneratorUrl: string | undefined;
 
@@ -127,11 +130,26 @@ export async function POST(req: Request) {
         // Current logic only fetches non-planners. This might need to be adjusted if planners can be scheduled.
         // Assuming only non-planners are schedulable.
         const schedulableEmployees = await User.find({ account_type: 'Non-Planner' }).select('user_id proficiency_grade team account_type -_id').lean() as MongooseUserDocument[];
+        console.log(`[Generate] Found ${schedulableEmployees.length} schedulable employees.`);
         
+        // Fetch competencies for all schedulable employees
+        const userIds = schedulableEmployees.map(u => u.user_id);
+        const allCompetencies = await Competency.find({ user_id: { $in: userIds } }).lean();
+        console.log(`[Generate] Fetched ${allCompetencies.length} competency records.`);
+        
+        const competencyMap: Record<string, string[]> = {};
+        allCompetencies.forEach((comp: any) => {
+            if (!competencyMap[comp.user_id]) {
+                competencyMap[comp.user_id] = [];
+            }
+            competencyMap[comp.user_id].push(comp.console);
+        });
+
         const employees = schedulableEmployees.map((user: MongooseUserDocument) => ({
             id: user.user_id, 
             proficiency_grade: user.proficiency_grade,
-            team: user.team // Include team for team-based scheduling
+            team: user.team,
+            competencies: competencyMap[user.user_id] || [] // Include competencies
         }));
 
         const leaves = await Leave.find({ status: 'Approved' });
@@ -150,12 +168,18 @@ export async function POST(req: Request) {
             const dateKey = currentDate.toISOString().split('T')[0];
             for (const location in workerRequirements) {
                 for (const shiftType of ['Morning', 'Afternoon', 'Night']) {
-                    requests.push({
+                    const req: RequestItem = {
                         date: dateKey,
                         location,
                         shiftType: shiftType as 'Morning' | 'Afternoon' | 'Night',
-                        required_proficiencies: workerRequirements[location],
-                    });
+                    };
+
+                    if (schedulingMode === 'competency') {
+                        req.required_competencies = workerRequirements[location];
+                    } else {
+                        req.required_proficiencies = workerRequirements[location];
+                    }
+                    requests.push(req);
                 }
             }
             currentDate.setUTCDate(currentDate.getUTCDate() + 1);
@@ -183,12 +207,17 @@ export async function POST(req: Request) {
         for (const date in generatedRoster) {
             for (const location in generatedRoster[date]) {
                 for (const shiftType in generatedRoster[date][location]) {
-                    for (const userId of generatedRoster[date][location][shiftType]) {
+                    for (const entry of generatedRoster[date][location][shiftType]) {
+                        const isCompetencyEntry = typeof entry === 'object' && entry !== null && 'user_id' in entry;
+                        const userId = isCompetencyEntry ? (entry as any).user_id : entry;
+                        const assignedConsole = isCompetencyEntry ? (entry as any).assigned_console : undefined;
+
                         const newRosterEntry = new Roster({
                             user_id: userId,
                             date: new Date(date),
                             shift_type: shiftType,
                             location: location,
+                            assigned_console: assignedConsole,
                         });
                         await newRosterEntry.save();
                     }

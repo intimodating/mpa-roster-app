@@ -2,10 +2,15 @@ import { connectToDatabase, User } from "../../../../lib/mongoose-client";
 import Roster from "../../../../models/roster"; 
 import { NextResponse } from "next/server";
 
+interface WorkerAssignment {
+    user_id: string;
+    assigned_console?: string;
+}
+
 interface ShiftDetails {
-    Morning: string[];
-    Afternoon: string[];
-    Night: string[];
+    Morning: (string | WorkerAssignment)[];
+    Afternoon: (string | WorkerAssignment)[];
+    Night: (string | WorkerAssignment)[];
 }
 
 interface UpdatePayload {
@@ -25,10 +30,13 @@ export async function POST(req: Request) {
         await connectToDatabase();
 
         // --- 1. Validate User IDs ---
+        const extractIds = (shifts: (string | WorkerAssignment)[]) => 
+            shifts.map(s => typeof s === 'string' ? s : s.user_id);
+
         const allEmployeeIds = [
             ...new Set([
-                ...East.Morning, ...East.Afternoon, ...East.Night,
-                ...West.Morning, ...West.Afternoon, ...West.Night,
+                ...extractIds(East.Morning), ...extractIds(East.Afternoon), ...extractIds(East.Night),
+                ...extractIds(West.Morning), ...extractIds(West.Afternoon), ...extractIds(West.Night),
             ]),
         ];
 
@@ -72,12 +80,17 @@ export async function POST(req: Request) {
                 const shiftType = shiftTypeKey as keyof ShiftDetails;
                 const employees = shiftTypes[shiftType];
 
-                for (const employeeId of employees) {
+                for (const entry of employees) {
+                    const isObject = typeof entry === 'object' && entry !== null;
+                    const userId = isObject ? (entry as WorkerAssignment).user_id : entry as string;
+                    const assignedConsole = isObject ? (entry as WorkerAssignment).assigned_console : undefined;
+
                     newAssignments.push({
-                        user_id: employeeId, 
+                        user_id: userId, 
                         date: startOfDayUTC, 
                         shift_type: shiftType, 
                         location: location,
+                        assigned_console: assignedConsole,
                     });
                 }
             }

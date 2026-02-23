@@ -77,18 +77,20 @@ const ModifyCompetencyModal: React.FC<ModifyCompetencyModalProps> = ({ onClose, 
     const [isSaving, setIsSaving] = useState(false);
     const [searchTerm, setSearchTerm] = useState<string>(''); // For searchable dropdown
 
-    const filteredUsers = users.filter(user =>
+    const filteredUsers = React.useMemo(() => users.filter(user =>
         user.user_id.toLowerCase().includes(searchTerm.toLowerCase()) ||
         user.name?.toLowerCase().includes(searchTerm.toLowerCase())
-    );
+    ), [users, searchTerm]);
 
     useEffect(() => {
         if (filteredUsers.length > 0) {
-            setSelectedUserId(filteredUsers[0].user_id);
+            if (!selectedUserId || !filteredUsers.some(u => u.user_id === selectedUserId)) {
+                setSelectedUserId(filteredUsers[0].user_id);
+            }
         } else {
             setSelectedUserId('');
         }
-    }, [filteredUsers]);
+    }, [filteredUsers, selectedUserId]);
 
     useEffect(() => {
         if (COMPETENCY_COLUMNS_LIST.length > 0 && !selectedConsole) {
@@ -233,18 +235,20 @@ const DeleteCompetencyModal: React.FC<DeleteCompetencyModalProps> = ({ onClose, 
     const [isLoadingCompetencies, setIsLoadingCompetencies] = useState(false);
     const [isDeleting, setIsDeleting] = useState(false);
 
-    const filteredUsers = users.filter(user =>
+    const filteredUsers = React.useMemo(() => users.filter(user =>
         user.user_id.toLowerCase().includes(searchTerm.toLowerCase()) ||
         user.name?.toLowerCase().includes(searchTerm.toLowerCase())
-    );
+    ), [users, searchTerm]);
 
     useEffect(() => {
         if (filteredUsers.length > 0) {
-            setSelectedUserId(filteredUsers[0].user_id);
-        } else if (filteredUsers.length === 0) {
+            if (!selectedUserId || !filteredUsers.some(u => u.user_id === selectedUserId)) {
+                setSelectedUserId(filteredUsers[0].user_id);
+            }
+        } else {
             setSelectedUserId('');
         }
-    }, [filteredUsers]);
+    }, [filteredUsers, selectedUserId]);
 
     useEffect(() => {
         const loadCompetencies = async () => {

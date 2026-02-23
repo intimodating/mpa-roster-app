@@ -4,10 +4,15 @@ import { connectToDatabase } from "../../../../lib/mongoose-client";
 import Roster from "../../../../models/roster";
 import { NextResponse } from "next/server";
 
+interface WorkerAssignment {
+    user_id: string;
+    assigned_console?: string;
+}
+
 interface ShiftDetails {
-    Morning: string[];
-    Afternoon: string[];
-    Night: string[];
+    Morning: (string | WorkerAssignment)[];
+    Afternoon: (string | WorkerAssignment)[];
+    Night: (string | WorkerAssignment)[];
 }
 
 interface ApprovePayload {
@@ -49,12 +54,17 @@ export async function POST(req: Request) {
             for (const location of locations) {
                 for (const shiftType of shiftTypes) {
                     const employees = roster[date][location as keyof typeof roster[typeof date]][shiftType as keyof ShiftDetails];
-                    for (const employeeName of employees) {
+                    for (const entry of employees) {
+                        const isObject = typeof entry === 'object' && entry !== null;
+                        const userId = isObject ? (entry as WorkerAssignment).user_id : entry as string;
+                        const assignedConsole = isObject ? (entry as WorkerAssignment).assigned_console : undefined;
+
                         newAssignments.push({
-                            user_id: employeeName,
+                            user_id: userId,
                             date: startOfDayUTC,
                             shift_type: shiftType,
                             location: location,
+                            assigned_console: assignedConsole,
                         });
                     }
                 }

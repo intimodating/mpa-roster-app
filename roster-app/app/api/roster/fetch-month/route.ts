@@ -4,10 +4,15 @@ import User from "../../../../models/users";
 import Leave from "../../../../models/leaves";
 import { NextResponse } from "next/server";
 
+interface WorkerAssignment {
+    user_id: string;
+    assigned_console?: string;
+}
+
 interface ShiftData {
-    Morning: string[];
-    Afternoon: string[];
-    Night: string[];
+    Morning: WorkerAssignment[];
+    Afternoon: WorkerAssignment[];
+    Night: WorkerAssignment[];
 }
 
 interface LocationShiftData {
@@ -49,7 +54,7 @@ export async function GET(req: Request) {
         };
 
         if (user.account_type === 'Planner') {
-            const assignments = await Roster.find(dateFilter).select('user_id shift_type date location -_id');
+            const assignments = await Roster.find(dateFilter).select('user_id shift_type date location assigned_console -_id');
             const rosterMap: RosterMap = {};
 
             assignments.forEach(assignment => {
@@ -66,7 +71,10 @@ export async function GET(req: Request) {
                 const shiftType = assignment.shift_type as keyof ShiftData;
 
                 if (location && (shiftType === 'Morning' || shiftType === 'Afternoon' || shiftType === 'Night') && rosterMap[dateKey][location]) {
-                    rosterMap[dateKey][location][shiftType].push(assignment.user_id);
+                    rosterMap[dateKey][location][shiftType].push({
+                        user_id: assignment.user_id,
+                        assigned_console: assignment.assigned_console
+                    });
                 }
             });
             
