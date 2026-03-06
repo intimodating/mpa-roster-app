@@ -6,6 +6,7 @@ import ShiftEditorModal from './ShiftEditorModal';
 import ShiftViewerModal from './ShiftViewerModal';
 import LeaveApplicationModal from './LeaveApplicationModal';
 import GenerateRosterModal from './GenerateRosterModal';
+import SimulationModal from './SimulationModal';
 import LeaveHistoryModal from './LeaveHistoryModal';
 import MatrixView from './MatrixView';
 
@@ -57,6 +58,7 @@ export default function RosterPage() {
   const [isViewerModalOpen, setIsViewerModalOpen] = useState(false);
   const [isLeaveModalOpen, setIsLeaveModalOpen] = useState(false);
   const [isGenerateRosterModalOpen, setIsGenerateRosterModalOpen] = useState(false);
+  const [isSimulationModalOpen, setIsSimulationModalOpen] = useState(false);
   const [isLeaveHistoryModalOpen, setIsLeaveHistoryModalOpen] = useState(false);
   const [selectedShiftData, setSelectedShiftData] = useState<ShiftData | null>(null);
   const [viewMode, setViewMode] = useState<'calendar' | 'matrix'>('calendar');
@@ -276,6 +278,9 @@ export default function RosterPage() {
               <button style={styles.plannerButton} onClick={() => setIsGenerateRosterModalOpen(true)}>
                 Generate Roster
               </button>
+              <button style={styles.simulatorButton} onClick={() => setIsSimulationModalOpen(true)}>
+                Simulator
+              </button>
               <button style={{...styles.plannerButton, background: 'linear-gradient(45deg, #5833f0 0%, #3c8ce6 50%, #23ccdc 100%)'}} onClick={handleGetSummary} disabled={isSummaryLoading}>
                 {isSummaryLoading ? 'Generating...' : 'Get AI Summary'}
               </button>
@@ -353,6 +358,12 @@ export default function RosterPage() {
         <GenerateRosterModal
           onClose={() => setIsGenerateRosterModalOpen(false)}
           onApprove={handleApproveRoster}
+        />
+      )}
+
+      {isSimulationModalOpen && (
+        <SimulationModal
+          onClose={() => setIsSimulationModalOpen(false)}
         />
       )}
 
@@ -521,6 +532,15 @@ const styles: Record<string, React.CSSProperties> = {
     fontWeight: 'bold',
     color: 'white',
     backgroundImage: 'linear-gradient(45deg, #f09433 0%, #e6683c 25%, #dc2743 50%, #cc2366 75%, #bc1888 100%)',
+  },
+  simulatorButton: {
+    padding: '10px 20px',
+    border: 'none',
+    borderRadius: '8px',
+    cursor: 'pointer',
+    fontWeight: 'bold',
+    color: 'white',
+    backgroundColor: '#28a745',
   },
   leaveButton: {
     padding: '10px 20px',
