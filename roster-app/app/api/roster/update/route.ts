@@ -1,16 +1,18 @@
 import { connectToDatabase, User } from "../../../../lib/mongoose-client";
 import Roster from "../../../../models/roster"; 
+import OJT from "../../../../models/ojt";
 import { NextResponse } from "next/server";
 
 interface WorkerAssignment {
     user_id: string;
     assigned_console?: string;
+    is_ojt?: boolean;
 }
 
 interface ShiftDetails {
-    Morning: (string | WorkerAssignment)[];
-    Afternoon: (string | WorkerAssignment)[];
-    Night: (string | WorkerAssignment)[];
+    Morning: WorkerAssignment[];
+    Afternoon: WorkerAssignment[];
+    Night: WorkerAssignment[];
 }
 
 interface UpdatePayload {
@@ -30,8 +32,7 @@ export async function POST(req: Request) {
         await connectToDatabase();
 
         // --- 1. Validate User IDs ---
-        const extractIds = (shifts: (string | WorkerAssignment)[]) => 
-            shifts.map(s => typeof s === 'string' ? s : s.user_id);
+        const extractIds = (shifts: WorkerAssignment[]) => shifts.map(s => s.user_id);
 
         const allEmployeeIds = [
             ...new Set([
@@ -65,38 +66,65 @@ export async function POST(req: Request) {
             }
         };
 
-        // --- 3. CLEAR: Delete all existing shifts for this 24-hour period ---
-        await Roster.deleteMany(dateFilter);
-
-        // --- 4. BUILD NEW SHIFT ASSIGNMENTS ---
-        const newAssignments = [];
-
+        // --- 3. TRACK OJT CHANGES ---
+        // Fetch existing OJT records in roster for this date to see what's removed
+        const existingOjtAssignments = await Roster.find({ ...dateFilter, is_ojt: true }).lean();
+        
+        const newAssignments: any[] = [];
         const locations = { East, West };
-        for (const locationKey of Object.keys(locations)) {
-            const location = locationKey as keyof typeof locations;
-            const shiftTypes = locations[location];
-
-            for (const shiftTypeKey of Object.keys(shiftTypes)) {
-                const shiftType = shiftTypeKey as keyof ShiftDetails;
-                const employees = shiftTypes[shiftType];
-
-                for (const entry of employees) {
-                    const isObject = typeof entry === 'object' && entry !== null;
-                    const userId = isObject ? (entry as WorkerAssignment).user_id : entry as string;
-                    const assignedConsole = isObject ? (entry as WorkerAssignment).assigned_console : undefined;
-
+        
+        for (const [location, shiftTypes] of Object.entries(locations)) {
+            for (const [shiftType, employees] of Object.entries(shiftTypes)) {
+                for (const entry of (employees as WorkerAssignment[])) {
                     newAssignments.push({
-                        user_id: userId, 
+                        user_id: entry.user_id, 
                         date: startOfDayUTC, 
                         shift_type: shiftType, 
                         location: location,
-                        assigned_console: assignedConsole,
+                        assigned_console: entry.assigned_console,
+                        is_ojt: !!entry.is_ojt
                     });
                 }
             }
         }
+
+        // Calculate OJT diff
+        const oldOjtKeys = new Set(existingOjtAssignments.map(a => `${a.user_id}|${a.assigned_console}`));
+        const newOjtKeys = new Set(newAssignments.filter(a => a.is_ojt).map(a => `${a.user_id}|${a.assigned_console}`));
+
+        const ojtToIncrement = newAssignments.filter(a => a.is_ojt && !oldOjtKeys.has(`${a.user_id}|${a.assigned_console}`));
+        const ojtToDecrement = existingOjtAssignments.filter(a => !newOjtKeys.has(`${a.user_id}|${a.assigned_console}`));
+
+        // Update OJT Collection
+        const ojtOps: any[] = [];
         
-        // --- 5. INSERT: Insert all new assignments simultaneously ---
+        for (const item of ojtToIncrement) {
+            ojtOps.push({
+                updateOne: {
+                    filter: { user_id: item.user_id, console: item.assigned_console },
+                    update: { $inc: { shift_number: 1 } },
+                    upsert: true
+                }
+            });
+        }
+
+        for (const item of ojtToDecrement) {
+            ojtOps.push({
+                updateOne: {
+                    filter: { user_id: item.user_id, console: item.assigned_console },
+                    update: { $inc: { shift_number: -1 } }
+                }
+            });
+        }
+
+        if (ojtOps.length > 0) {
+            await OJT.bulkWrite(ojtOps);
+            // Cleanup: remove documents with shift_number <= 0
+            await OJT.deleteMany({ shift_number: { $lte: 0 } });
+        }
+
+        // --- 4. CLEAR AND INSERT ROSTER ---
+        await Roster.deleteMany(dateFilter);
         if (newAssignments.length > 0) {
             await Roster.insertMany(newAssignments);
         }

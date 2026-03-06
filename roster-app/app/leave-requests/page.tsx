@@ -52,22 +52,32 @@ export default function LeaveRequestsPage() {
 
                         const rosterData = await rosterRes.json();
                         
-                        let shift: LeaveRequest['shift'] = "No";
+                        let shiftDisplay: string = "No";
 
                         if (rosterData.success && rosterData.data) {
                             const { East, West } = rosterData.data;
                             const userId = leave.user_id;
 
-                            if (East?.Morning?.includes(userId) || West?.Morning?.includes(userId)) {
-                                shift = "Morning";
-                            } else if (East?.Afternoon?.includes(userId) || West?.Afternoon?.includes(userId)) {
-                                shift = "Afternoon";
-                            } else if (East?.Night?.includes(userId) || West?.Night?.includes(userId)) {
-                                shift = "Night";
+                            const checkShift = (shiftArray: any[]) => {
+                                return shiftArray?.find((item: any) => 
+                                    (typeof item === 'string' ? item === userId : item?.user_id === userId)
+                                );
+                            };
+
+                            const morningEntry = checkShift(East?.Morning) || checkShift(West?.Morning);
+                            const afternoonEntry = checkShift(East?.Afternoon) || checkShift(West?.Afternoon);
+                            const nightEntry = checkShift(East?.Night) || checkShift(West?.Night);
+
+                            if (morningEntry) {
+                                shiftDisplay = morningEntry.assigned_console ? `Morning (${morningEntry.assigned_console})` : "Morning";
+                            } else if (afternoonEntry) {
+                                shiftDisplay = afternoonEntry.assigned_console ? `Afternoon (${afternoonEntry.assigned_console})` : "Afternoon";
+                            } else if (nightEntry) {
+                                shiftDisplay = nightEntry.assigned_console ? `Night (${nightEntry.assigned_console})` : "Night";
                             }
                         }
                         
-                        return { ...leave, shift };
+                        return { ...leave, shift: shiftDisplay as any };
                     })
                 );
 

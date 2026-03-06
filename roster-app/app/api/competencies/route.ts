@@ -5,10 +5,13 @@ import Competency from '../../../models/competencies'; // Import the new Compete
 
 // Define the fixed order of competency columns
 const COMPETENCY_COLUMNS = [
-    "East Control", "West Control", "VTIS East", "VTIS West", "Keppel Control",
-    "Sembawang Control", "Pasir Panjang Control", "Jurong Control", "VTIS Central",
-    "Sembawang Control MTC", "Pasir Panjang Control MTC", "VTIC MTC", "PSU",
-    "STW(PB)", "GMDSS", "Vista DO"
+    "East Control", "West Control", "Keppel", "Cruisebay",
+    "VTIS East", "VTIS West", "VTIS Central", "Sembawang Control",
+    "Jurong Control", "Pasir Panjang Control", "Sembawang MTC",
+    "Pasir Panjang MTC", "VTIS MTC", "PSU", "Temasek MTC",
+    "GMDSS", "STW (PB)", "Vista DO/ Sensitive Vessels",
+    "STW (TU)", "Changi DO", "Watch IC Console",
+    "Proactive"
 ];
 
 export async function GET() {

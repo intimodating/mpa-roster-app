@@ -6,6 +6,7 @@ import React, { useState } from 'react';
 interface WorkerAssignment {
     user_id: string;
     assigned_console?: string;
+    is_ojt?: boolean;
 }
 
 interface ShiftDetails {
@@ -55,17 +56,35 @@ const ShiftViewerModal: React.FC<Props> = ({ shiftData, onClose }) => {
     };
 
     const renderEmployeeList = (workers: WorkerAssignment[]) => {
-        if (workers.length === 0) {
-            return <li style={styles.employeeItem}>No assignments</li>;
-        }
+        const normalWorkers = workers.filter(w => !w.is_ojt);
+        const ojtWorkers = workers.filter(w => w.is_ojt);
 
-        const sorted = sortWorkers(workers);
-        return sorted.map(emp => (
-            <li key={emp.user_id} style={styles.employeeItem}>
-                <span style={styles.workerId}>{emp.user_id}</span>
-                {emp.assigned_console && <span style={styles.consoleTag}>{emp.assigned_console}</span>}
-            </li>
-        ));
+        return (
+            <>
+                <div style={{ marginBottom: '15px' }}>
+                    <h4 style={{ fontSize: '0.9em', color: '#82ca9d', borderBottom: '1px solid #444', marginBottom: '5px' }}>Assigned:</h4>
+                    <ul style={styles.employeeList}>
+                        {normalWorkers.length === 0 ? <li style={styles.employeeItem}>None</li> : sortWorkers(normalWorkers).map(emp => (
+                            <li key={emp.user_id} style={styles.employeeItem}>
+                                <span style={styles.workerId}>{emp.user_id}</span>
+                                {emp.assigned_console && <span style={styles.consoleTag}>{emp.assigned_console}</span>}
+                            </li>
+                        ))}
+                    </ul>
+                </div>
+                <div>
+                    <h4 style={{ fontSize: '0.9em', color: '#ffc658', borderBottom: '1px solid #444', marginBottom: '5px' }}>OJT:</h4>
+                    <ul style={styles.employeeList}>
+                        {ojtWorkers.length === 0 ? <li style={styles.employeeItem}>None</li> : sortWorkers(ojtWorkers).map(emp => (
+                            <li key={emp.user_id} style={{ ...styles.employeeItem, borderLeft: '2px solid #ffc658', paddingLeft: '5px' }}>
+                                <span style={styles.workerId}>{emp.user_id}</span>
+                                {emp.assigned_console && <span style={styles.consoleTag}>{emp.assigned_console}</span>}
+                            </li>
+                        ))}
+                    </ul>
+                </div>
+            </>
+        );
     };
 
     return (

@@ -11,8 +11,8 @@ export async function POST(req: Request) {
         }
 
         // Validate grade is a number
-        if (typeof grade !== 'number' || grade < 1 || grade > 9) {
-            return NextResponse.json({ success: false, message: "Grade must be a number between 1 and 9." }, { status: 400 });
+        if (typeof grade !== 'number' || grade < 1 || grade > 15) {
+            return NextResponse.json({ success: false, message: "Grade must be a number between 1 and 15." }, { status: 400 });
         }
 
         // Validate date_achieved format

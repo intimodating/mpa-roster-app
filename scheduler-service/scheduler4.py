@@ -1,5 +1,6 @@
 import json
 import sys
+import time
 from ortools.sat.python import cp_model
 
 # --- Constants ---
@@ -14,24 +15,43 @@ LOCATION_NAMES = {EAST: "East", WEST: "West"}
 NAME_TO_LOCATION = {"East": EAST, "West": WEST}
 
 # --- Tunable Parameters ---
+PATTERN_PENALTY_WEIGHT = 100
 UNDERSTAFFING_PENALTY_WEIGHT = 1000
-TIME_LIMIT_SECONDS = 30
-NUM_SEARCH_WORKERS = 8
+TIME_LIMIT_SECONDS = 60  # Increased slightly
+NUM_SEARCH_WORKERS = 4   # Reduced for better stability on some systems
+
+# -----------------------------------------------------------------------------------
+# Helper: safe boolean operations
+def safe_bool_or(model, bool_vars, target_boolvar):
+    if not bool_vars:
+        model.Add(target_boolvar == 0)
+    else:
+        model.AddBoolOr(bool_vars).OnlyEnforceIf(target_boolvar)
+        model.AddBoolAnd([v.Not() for v in bool_vars]).OnlyEnforceIf(target_boolvar.Not())
+
+def safe_bool_and(model, bool_vars, target_boolvar):
+    if not bool_vars:
+        model.Add(target_boolvar == 1)
+    else:
+        model.AddBoolAnd(bool_vars).OnlyEnforceIf(target_boolvar)
+        model.AddBoolOr([v.Not() for v in bool_vars]).OnlyEnforceIf(target_boolvar.Not())
+# -----------------------------------------------------------------------------------
 
 def main(data):
+    start_time = time.time()
     employees_data = data.get("employees", []) 
     requests_data = data.get("requests", [])   
     leave_data = data.get("leaveData", {})
     
     # Simulation specific parameters
-    custom_pattern = data.get("shiftPattern", []) # List of strings like ["Morning", "OFF", ...]
+    custom_pattern = data.get("shiftPattern", []) 
     pattern_sequence = [NAME_TO_SHIFT.get(s, OFF) for s in custom_pattern]
     pattern_length = len(pattern_sequence)
     
     if pattern_length == 0:
         return json.dumps({"error": "Shift pattern cannot be empty."})
 
-    sys.stderr.write(f"Scheduler4 (Simulation): pattern length {pattern_length}\n")
+    sys.stderr.write(f"Scheduler4 (Simulation): employees={len(employees_data)}, requests={len(requests_data)}, pattern={pattern_length}\n")
 
     model = cp_model.CpModel()
 
@@ -47,7 +67,7 @@ def main(data):
     num_days = len(all_dates)
     date_to_index = {date: i for i, date in enumerate(all_dates)}
 
-    # Offsets for employees - in simulation we assume they follow the pattern starting from their offset
+    # Offsets
     employee_offsets = {}
     for i, emp in enumerate(employees_data):
         if "offset" in emp:
@@ -58,83 +78,118 @@ def main(data):
     # --- Variables ---
     assign = {}
     emp_day_vars = {} 
+    emp_day_shift_vars = {}
     req_comp_vars = {} 
 
+    # Fast lookup for requests
+    req_map = {}
     for req in requests_data:
         d_idx = date_to_index[req["date"]]
         s_idx = NAME_TO_SHIFT[req["shiftType"]]
         l_idx = NAME_TO_LOCATION[req["location"]]
-        req_comp_dict = req.get("required_competencies", {})
+        req_map[(d_idx, s_idx, l_idx)] = req.get("required_competencies", {})
 
-        for comp_name, count in req_comp_dict.items():
+        for comp_name, count in req_map[(d_idx, s_idx, l_idx)].items():
             if count <= 0: continue
             key_req = (d_idx, s_idx, l_idx, comp_name)
             if key_req not in req_comp_vars:
                 req_comp_vars[key_req] = []
 
-            for e_idx, emp in enumerate(employees_data):
-                emp_id = emp["id"]
-                
-                # HARD CONSTRAINT: Pattern enforcement
-                offset = employee_offsets.get(e_idx, 0)
-                pattern_pos = (d_idx + offset) % pattern_length
-                expected_shift = pattern_sequence[pattern_pos]
-                
-                # If the expected shift for this employee on this day doesn't match the request's shift, skip
-                if expected_shift != s_idx:
-                    continue
-                
-                # Check leave
-                if emp_id in leave_data and req["date"] in leave_data[emp_id]:
-                    continue
-                
-                # Check if employee has competency
-                emp_comps = emp.get("competencies", [])
-                if comp_name not in emp_comps:
-                    continue
-                
-                # Create variable
-                v = model.NewBoolVar(f"assign_e{e_idx}_d{d_idx}_s{s_idx}_l{l_idx}_{comp_name}")
-                assign[(e_idx, d_idx, s_idx, l_idx, comp_name)] = v
-                req_comp_vars[key_req].append(v)
-                
-                if (e_idx, d_idx) not in emp_day_vars:
-                    emp_day_vars[(e_idx, d_idx)] = []
-                emp_day_vars[(e_idx, d_idx)].append(v)
+    for (d_idx, s_idx, l_idx, comp_name) in req_comp_vars.keys():
+        date_str = all_dates[d_idx]
+        for e_idx, emp in enumerate(employees_data):
+            emp_id = emp["id"]
+            if emp_id in leave_data and date_str in leave_data[emp_id]:
+                continue
+            
+            emp_comps = emp.get("competencies", [])
+            if comp_name not in emp_comps:
+                continue
+            
+            v = model.NewBoolVar(f"a_e{e_idx}_d{d_idx}_s{s_idx}_l{l_idx}_{comp_name}")
+            assign[(e_idx, d_idx, s_idx, l_idx, comp_name)] = v
+            req_comp_vars[(d_idx, s_idx, l_idx, comp_name)].append(v)
+            
+            if (e_idx, d_idx) not in emp_day_vars:
+                emp_day_vars[(e_idx, d_idx)] = []
+            emp_day_vars[(e_idx, d_idx)].append(v)
+
+            shift_key = (e_idx, d_idx, s_idx)
+            if shift_key not in emp_day_shift_vars:
+                emp_day_shift_vars[shift_key] = []
+            emp_day_shift_vars[shift_key].append(v)
 
     # --- Hard Constraints ---
-    # 1) At most one shift/competency per day per employee
     for (e_idx, d_idx), vars_list in emp_day_vars.items():
         model.Add(sum(vars_list) <= 1)
 
-    # 2) Staffing Requirements (Strict for Simulation if possible, or very high penalty)
-    # The user asked for "infeasible if no solution found". 
-    # To truly output "infeasible" for staffing, we make them HARD constraints.
+    # --- Soft Constraints: Understaffing ---
+    understaff_vars = []
     for (d_idx, s_idx, l_idx, comp_name), vars_list in req_comp_vars.items():
-        count_req = 0
-        for req in requests_data:
-            if (date_to_index[req["date"]] == d_idx and 
-                NAME_TO_SHIFT[req["shiftType"]] == s_idx and 
-                NAME_TO_LOCATION[req["location"]] == l_idx):
-                count_req = req["required_competencies"].get(comp_name, 0)
-                break
-        
+        count_req = req_map.get((d_idx, s_idx, l_idx), {}).get(comp_name, 0)
         if count_req > 0:
-            model.Add(sum(vars_list) == count_req)
+            understaff = model.NewIntVar(0, count_req, f"u_{d_idx}_{s_idx}_{l_idx}_{comp_name}")
+            understaff_vars.append(understaff)
+            model.Add(sum(vars_list) + understaff == count_req)
+
+    # --- Soft Constraints: Pattern deviations ---
+    pattern_deviation_vars = []
+    for e_idx in range(num_employees):
+        for d_idx in range(num_days):
+            date_str = all_dates[d_idx]
+            if date_str not in request_dates:
+                continue
+
+            offset = employee_offsets.get(e_idx, 0)
+            pattern_pos = (d_idx + offset) % pattern_length
+            expected = pattern_sequence[pattern_pos]
+
+            dev = model.NewBoolVar(f"dev_e{e_idx}_d{d_idx}")
+            pattern_deviation_vars.append(dev)
+
+            all_emp_vars = emp_day_vars.get((e_idx, d_idx), [])
+            if not all_emp_vars:
+                # If no variables created (due to competencies/leave), 
+                # we only deviate if expected != OFF
+                if expected != OFF:
+                    model.Add(dev == 1)
+                else:
+                    model.Add(dev == 0)
+                continue
+
+            if expected == OFF:
+                safe_bool_or(model, all_emp_vars, dev)
+            else:
+                expected_vars = emp_day_shift_vars.get((e_idx, d_idx, expected), [])
+                other_vars = [v for v in all_emp_vars if v not in expected_vars]
+                
+                expected_assigned = model.NewBoolVar(f"exp_e{e_idx}_d{d_idx}")
+                other_assigned = model.NewBoolVar(f"oth_e{e_idx}_d{d_idx}")
+                
+                safe_bool_or(model, expected_vars, expected_assigned)
+                safe_bool_or(model, other_vars, other_assigned)
+                
+                model.AddBoolOr([expected_assigned.Not(), other_assigned]).OnlyEnforceIf(dev)
+                model.AddBoolAnd([expected_assigned, other_assigned.Not()]).OnlyEnforceIf(dev.Not())
+
+    # --- Objective ---
+    model.Minimize(
+        sum(understaff_vars) * UNDERSTAFFING_PENALTY_WEIGHT +
+        sum(pattern_deviation_vars) * PATTERN_PENALTY_WEIGHT
+    )
 
     # --- Solve ---
     solver = cp_model.CpSolver()
     solver.parameters.max_time_in_seconds = TIME_LIMIT_SECONDS
     solver.parameters.num_workers = NUM_SEARCH_WORKERS
 
-    sys.stderr.write("Starting solver (Simulation Hard Constraints)...\n")
+    sys.stderr.write(f"Preprocessing took {time.time() - start_time:.2f}s. Model has {len(assign)} assign vars.\n")
+    sys.stderr.write("Starting solver...\n")
+    solve_start = time.time()
     status = solver.Solve(model)
-    sys.stderr.write(f"Solver finished with status {solver.StatusName(status)}\n")
+    sys.stderr.write(f"Solver finished with status {solver.StatusName(status)} in {time.time() - solve_start:.2f}s\n")
 
     # --- Result ---
-    if status == cp_model.INFEASIBLE:
-        return json.dumps({"error": "Infeasible: No solution found that satisfies the shift pattern and staffing requirements."})
-    
     if status not in (cp_model.OPTIMAL, cp_model.FEASIBLE):
         return json.dumps({"error": f"Solver could not find a solution. Status: {solver.StatusName(status)}"})
 

@@ -152,7 +152,14 @@ export async function POST(req: Request) {
             competencies: competencyMap[user.user_id] || [] // Include competencies
         }));
 
-        const leaves = await Leave.find({ status: 'Approved' });
+        const leaves = await Leave.find({ 
+            status: 'Approved',
+            date: {
+                $gte: new Date(`${startDate}T00:00:00Z`),
+                $lte: new Date(`${endDate}T23:59:59Z`)
+            }
+        }).lean();
+        
         const leaveData: Record<string, string[]> = {};
         for (const leave of leaves) {
             if (!leaveData[leave.user_id]) {
@@ -194,36 +201,6 @@ export async function POST(req: Request) {
 
         // The pythonResponse is now the roster directly
         const generatedRoster = pythonResponse as PythonRosterResult;
-
-        // Clear existing roster for the date range
-        await Roster.deleteMany({
-            date: {
-                $gte: new Date(startDate),
-                $lte: new Date(endDate),
-            },
-        });
-
-        // Save new roster entries
-        for (const date in generatedRoster) {
-            for (const location in generatedRoster[date]) {
-                for (const shiftType in generatedRoster[date][location]) {
-                    for (const entry of generatedRoster[date][location][shiftType]) {
-                        const isCompetencyEntry = typeof entry === 'object' && entry !== null && 'user_id' in entry;
-                        const userId = isCompetencyEntry ? (entry as any).user_id : entry;
-                        const assignedConsole = isCompetencyEntry ? (entry as any).assigned_console : undefined;
-
-                        const newRosterEntry = new Roster({
-                            user_id: userId,
-                            date: new Date(date),
-                            shift_type: shiftType,
-                            location: location,
-                            assigned_console: assignedConsole,
-                        });
-                        await newRosterEntry.save();
-                    }
-                }
-            }
-        }
 
         return NextResponse.json({ success: true, roster: generatedRoster }); // Removed 'logs' here as Python service only returns roster or error
 
