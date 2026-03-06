@@ -11,6 +11,7 @@ interface UserDetails {
 interface WorkerAssignment {
     user_id: string;
     assigned_console?: string;
+    is_ojt?: boolean;
 }
 
 interface ShiftDetails {
@@ -38,69 +39,127 @@ interface ModalProps {
     onSave: (data: ShiftData) => void;
 }
 
+// --- CONSTANTS ---
+const COMPETENCIES = [
+    "East Control", "West Control", "Keppel", "Cruisebay",
+    "VTIS East", "VTIS West", "VTIS Central", "Sembawang Control",
+    "Jurong Control", "Pasir Panjang Control", "Sembawang MTC",
+    "Pasir Panjang MTC", "VTIS MTC", "PSU", "Temasek MTC",
+    "GMDSS", "STW (PB)", "Vista DO/ Sensitive Vessels",
+    "STW (TU)", "Changi DO", "Watch IC Console"
+];
+
 // --- SUB-COMPONENT: ShiftLane ---
 const ShiftLane: React.FC<any> = ({ location, shiftType, workers, userLookup, onRemove, onAdd, availableUsers }) => {
     const [searchTerm, setSearchTerm] = useState('');
+    const [selectedConsole, setSelectedConsole] = useState(COMPETENCIES[0]);
+    const [isOjtMode, setIsOjtMode] = useState(false);
 
     const filteredUsers = searchTerm
-        ? availableUsers.filter(user => 
-            user.name.toLowerCase().includes(searchTerm.toLowerCase()) ||
-            user.user_id.toLowerCase().includes(searchTerm.toLowerCase())
+        ? availableUsers.filter((user: any) => 
+            (user.name?.toLowerCase() || '').includes(searchTerm.toLowerCase()) ||
+            (user.user_id?.toLowerCase() || '').includes(searchTerm.toLowerCase())
           ).slice(0, 5) // Limit to 5 results
         : [];
 
     const handleAdd = (user: UserDetails) => {
-        onAdd(location, shiftType, user.user_id);
+        onAdd(location, shiftType, user.user_id, selectedConsole, isOjtMode);
         setSearchTerm('');
     };
 
-    // Sort workers by proficiency_grade in ascending order
-    const sortedWorkers = useMemo(() => {
-        return [...workers].sort((a, b) => {
+    // Split workers into normal and OJT
+    const normalWorkers = useMemo(() => workers.filter((w: any) => !w.is_ojt), [workers]);
+    const ojtWorkers = useMemo(() => workers.filter((w: any) => w.is_ojt), [workers]);
+
+    // Sort workers by proficiency_grade
+    const sortWorkers = (list: WorkerAssignment[]) => {
+        return [...list].sort((a, b) => {
             const userA = userLookup[a.user_id];
             const userB = userLookup[b.user_id];
-
-            const gradeA = userA?.proficiency_grade ?? -1; 
-            const gradeB = userB?.proficiency_grade ?? -1;
-
-            return gradeA - gradeB;
+            return (userA?.proficiency_grade ?? -1) - (userB?.proficiency_grade ?? -1);
         });
-    }, [workers, userLookup]);
+    };
 
     return (
-        <div>
+        <div style={{ marginBottom: '20px', border: '1px solid #444', padding: '15px', borderRadius: '8px', backgroundColor: '#333' }}>
             <h3 style={modalStyles.shiftHeader}>{shiftType} Shift ({location})</h3>
-            <div style={userListStyles.container}>
-                {sortedWorkers.length === 0 ? (
-                    <p style={userListStyles.emptyText}>No users assigned.</p>
-                ) : sortedWorkers.map(worker => (
-                    <div key={worker.user_id} style={userListStyles.userItem}>
-                        <span>
-                            <strong style={{color: '#82ca9d'}}>{userLookup[worker.user_id]?.name || 'Unknown User'}</strong>
-                            {` (${worker.user_id}) - T${userLookup[worker.user_id]?.team || 'N/A'}, P${userLookup[worker.user_id]?.proficiency_grade || 'N/A'}`}
-                            {worker.assigned_console && <span style={{ color: '#aaa', fontStyle: 'italic' }}> ({worker.assigned_console})</span>}
-                        </span>
-                        <button onClick={() => onRemove(location, shiftType, worker.user_id)} style={userListStyles.removeButton}>&times;</button>
-                    </div>
-                ))}
+            
+            <div style={{ marginBottom: '10px' }}>
+                <h4 style={{ fontSize: '0.9em', color: '#82ca9d', marginBottom: '5px' }}>Assigned Workers:</h4>
+                <div style={userListStyles.container}>
+                    {normalWorkers.length === 0 ? (
+                        <p style={userListStyles.emptyText}>No users assigned.</p>
+                    ) : sortWorkers(normalWorkers).map(worker => (
+                        <div key={worker.user_id} style={userListStyles.userItem}>
+                            <span>
+                                <strong style={{color: '#82ca9d'}}>{userLookup[worker.user_id]?.name || 'Unknown User'}</strong>
+                                {` (${worker.user_id}) - T${userLookup[worker.user_id]?.team || 'N/A'}, P${userLookup[worker.user_id]?.proficiency_grade || 'N/A'}`}
+                                {worker.assigned_console && <span style={{ color: '#aaa', fontStyle: 'italic' }}> ({worker.assigned_console})</span>}
+                            </span>
+                            <button onClick={() => onRemove(location, shiftType, worker.user_id)} style={userListStyles.removeButton}>&times;</button>
+                        </div>
+                    ))}
+                </div>
             </div>
-            <div style={{ position: 'relative', marginTop: '10px' }}>
-                <input
-                    type="text"
-                    placeholder="Search by name or ID to add user..."
-                    value={searchTerm}
-                    onChange={e => setSearchTerm(e.target.value)}
-                    style={modalStyles.inputField} 
-                />
-                {searchTerm && (
-                    <div style={dropdownStyles.container}>
-                        {filteredUsers.length > 0 ? filteredUsers.map(user => (
-                            <div key={user.user_id} style={dropdownStyles.item} onClick={() => handleAdd(user)}>
-                                {user.name} ({user.user_id}) - T{user.team}, P{user.proficiency_grade}
-                            </div>
-                        )) : <div style={{...dropdownStyles.item, cursor: 'default'}}>No available users found.</div>}
-                    </div>
-                )}
+
+            <div style={{ marginBottom: '15px' }}>
+                <h4 style={{ fontSize: '0.9em', color: '#ffc658', marginBottom: '5px' }}>OJT Workers:</h4>
+                <div style={{ ...userListStyles.container, border: '1px dashed #ffc658' }}>
+                    {ojtWorkers.length === 0 ? (
+                        <p style={userListStyles.emptyText}>No OJT assigned.</p>
+                    ) : sortWorkers(ojtWorkers).map(worker => (
+                        <div key={worker.user_id} style={{ ...userListStyles.userItem, borderLeft: '4px solid #ffc658' }}>
+                            <span>
+                                <strong style={{color: '#ffc658'}}>{userLookup[worker.user_id]?.name || 'Unknown User'}</strong>
+                                {` (${worker.user_id}) - T${userLookup[worker.user_id]?.team || 'N/A'}, P${userLookup[worker.user_id]?.proficiency_grade || 'N/A'}`}
+                                {worker.assigned_console && <span style={{ color: '#aaa', fontStyle: 'italic' }}> ({worker.assigned_console})</span>}
+                            </span>
+                            <button onClick={() => onRemove(location, shiftType, worker.user_id)} style={userListStyles.removeButton}>&times;</button>
+                        </div>
+                    ))}
+                </div>
+            </div>
+
+            <div style={{ display: 'flex', gap: '10px', marginTop: '10px', alignItems: 'center', flexWrap: 'wrap' }}>
+                <div style={{ flex: 2, position: 'relative', minWidth: '200px' }}>
+                    <input
+                        type="text"
+                        placeholder="Search user..."
+                        value={searchTerm}
+                        onChange={e => setSearchTerm(e.target.value)}
+                        style={modalStyles.inputField} 
+                    />
+                    {searchTerm && (
+                        <div style={dropdownStyles.container}>
+                            {filteredUsers.length > 0 ? filteredUsers.map((user: any) => (
+                                <div key={user.user_id} style={dropdownStyles.item} onClick={() => handleAdd(user)}>
+                                    {user.name} ({user.user_id}) - T{user.team}, P{user.proficiency_grade}
+                                </div>
+                            )) : <div style={{...dropdownStyles.item, cursor: 'default'}}>No available users found.</div>}
+                        </div>
+                    )}
+                </div>
+                <div style={{ flex: 1, minWidth: '150px' }}>
+                    <select 
+                        value={selectedConsole} 
+                        onChange={(e) => setSelectedConsole(e.target.value)}
+                        style={modalStyles.inputField}
+                    >
+                        {COMPETENCIES.map(comp => (
+                            <option key={comp} value={comp}>{comp}</option>
+                        ))}
+                    </select>
+                </div>
+                <div style={{ display: 'flex', alignItems: 'center', gap: '5px', color: '#ffc658' }}>
+                    <input 
+                        type="checkbox" 
+                        id={`ojt-checkbox-${location}-${shiftType}`}
+                        checked={isOjtMode}
+                        onChange={(e) => setIsOjtMode(e.target.checked)}
+                        style={{ width: '18px', height: '18px' }}
+                    />
+                    <label htmlFor={`ojt-checkbox-${location}-${shiftType}`} style={{ fontWeight: 'bold' }}>OJT</label>
+                </div>
             </div>
         </div>
     );
@@ -157,12 +216,12 @@ const ShiftEditorModal: React.FC<ModalProps> = ({ shiftData, onClose, onSave }) 
         }));
     };
 
-    const handleAddUser = (location: 'East' | 'West', shiftType: keyof ShiftDetails, userId: string) => {
+    const handleAddUser = (location: 'East' | 'West', shiftType: keyof ShiftDetails, userId: string, console: string, isOjt: boolean) => {
         setShifts(prev => ({
             ...prev,
             [location]: {
                 ...prev[location],
-                [shiftType]: [...prev[location][shiftType], { user_id: userId }],
+                [shiftType]: [...prev[location][shiftType], { user_id: userId, assigned_console: console, is_ojt: isOjt }],
             }
         }));
     };

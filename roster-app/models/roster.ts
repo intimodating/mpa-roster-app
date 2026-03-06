@@ -34,6 +34,11 @@ const RosterSchema = new mongoose.Schema({
         type: String,
     },
 
+    is_ojt: {
+        type: Boolean,
+        default: false
+    },
+
     // Optional: Notes or role for that specific shift
     role: String,
 }, {

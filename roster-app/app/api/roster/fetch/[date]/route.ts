@@ -3,6 +3,12 @@ import { connectToDatabase } from "../../../../../lib/mongoose-client";
 import Roster from "../../../../../models/roster";
 import { NextResponse, NextRequest } from "next/server";
 
+interface WorkerAssignment {
+    user_id: string;
+    assigned_console?: string;
+    is_ojt?: boolean;
+}
+
 export async function GET(req: NextRequest, context: { params: { date: string } }) {
     const { date } = await context.params;
 
@@ -23,21 +29,21 @@ export async function GET(req: NextRequest, context: { params: { date: string } 
             }
         };
 
-        // Fetch user_id, shift_type, location, and assigned_console
-        const assignments = await Roster.find(dateFilter).select('user_id shift_type location assigned_console -_id');
+        // Fetch user_id, shift_type, location, assigned_console, and is_ojt
+        const assignments = await Roster.find(dateFilter).select('user_id shift_type location assigned_console is_ojt -_id');
         
         // Initialize the data structure the client expects
         const shiftData = {
             date: date,
             East: {
-                Morning: [] as { user_id: string; assigned_console?: string }[],
-                Afternoon: [] as { user_id: string; assigned_console?: string }[],
-                Night: [] as { user_id: string; assigned_console?: string }[],
+                Morning: [] as WorkerAssignment[],
+                Afternoon: [] as WorkerAssignment[],
+                Night: [] as WorkerAssignment[],
             },
             West: {
-                Morning: [] as { user_id: string; assigned_console?: string }[],
-                Afternoon: [] as { user_id: string; assigned_console?: string }[],
-                Night: [] as { user_id: string; assigned_console?: string }[],
+                Morning: [] as WorkerAssignment[],
+                Afternoon: [] as WorkerAssignment[],
+                Night: [] as WorkerAssignment[],
             }
         };
 
@@ -52,13 +58,13 @@ export async function GET(req: NextRequest, context: { params: { date: string } 
 
         // Populate the structure
         assignments.forEach(assignment => {
-            const { user_id, shift_type, location, assigned_console } = assignment;
+            const { user_id, shift_type, location, assigned_console, is_ojt } = assignment;
             if (location === 'East' || location === 'West') {
                 if (shift_type === 'Morning' || shift_type === 'Afternoon' || shift_type === 'Night') {
                     // @ts-expect-error: Dynamic access to shiftData[location][shift_type]
                     if (shiftData[location][shift_type]) {
                         // @ts-expect-error: Dynamic access to shiftData[location][shift_type]
-                        shiftData[location][shift_type].push({ user_id, assigned_console });
+                        shiftData[location][shift_type].push({ user_id, assigned_console, is_ojt: !!is_ojt });
                     }
                 }
             }

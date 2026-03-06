@@ -48,6 +48,10 @@ export default function ShiftReplacementModal({ leave, onClose, onReplacementSuc
                 if (!userData.success) throw new Error(userData.message);
                 setApplicantDetails(userData.data);
 
+                // Extract console if exists (e.g., "Morning (VTIS East)")
+                const consoleMatch = leave.shift.match(/\(([^)]+)\)/);
+                const requiredConsole = consoleMatch ? consoleMatch[1] : null;
+
                 // Fetch replacement candidates
                 const replacementsRes = await fetch(`/api/users/find-replacements`, {
                     method: 'POST',
@@ -55,6 +59,7 @@ export default function ShiftReplacementModal({ leave, onClose, onReplacementSuc
                     body: JSON.stringify({
                         date: leave.date.split('T')[0],
                         min_proficiency_grade: userData.data.proficiency_grade,
+                        required_console: requiredConsole
                     }),
                 });
                 if (!replacementsRes.ok) throw new Error("Failed to fetch replacement candidates.");
