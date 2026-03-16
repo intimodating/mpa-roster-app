@@ -32,7 +32,8 @@ interface RequestItem {
 async function callSimulationService(
     employees: Employee[], 
     requests: RequestItem[], 
-    shiftPattern: string[]
+    shiftPattern: string[],
+    ojtData: Record<string, Record<string, Record<string, string>>>
 ) {
     let rosterGeneratorUrl: string | undefined;
 
@@ -53,7 +54,8 @@ async function callSimulationService(
                 requests, 
                 shiftPattern, 
                 schedulingMode: 'simulation',
-                leaveData: {} // Simulation assumes everyone is available for the test
+                leaveData: {}, // Simulation assumes everyone is available for the test
+                ojtData
             }),
             signal: AbortSignal.timeout(300000)
         });
@@ -83,6 +85,24 @@ export async function POST(req: Request) {
         const userIds = schedulableEmployees.map(u => u.user_id);
         const allCompetencies = await Competency.find({ user_id: { $in: userIds } }).lean();
         
+        // Fetch OJT assignments for the period
+        const start = new Date(`${startDate}T00:00:00Z`);
+        const end = new Date(`${endDate}T23:59:59Z`);
+        
+        const Roster = (await import("../../../../models/roster")).default;
+        const ojtAssignments = await Roster.find({
+            date: { $gte: start, $lte: end },
+            is_ojt: true
+        }).lean();
+
+        const ojtData: Record<string, Record<string, Record<string, string>>> = {};
+        ojtAssignments.forEach((ojt: any) => {
+            const dateKey = ojt.date.toISOString().split('T')[0];
+            if (!ojtData[dateKey]) ojtData[dateKey] = {};
+            if (!ojtData[dateKey][ojt.user_id]) ojtData[dateKey][ojt.user_id] = {};
+            ojtData[dateKey][ojt.user_id][ojt.shift_type] = ojt.assigned_console;
+        });
+
         const competencyMap: Record<string, string[]> = {};
         allCompetencies.forEach((comp: any) => {
             if (!competencyMap[comp.user_id]) competencyMap[comp.user_id] = [];
@@ -96,6 +116,13 @@ export async function POST(req: Request) {
             competencies: competencyMap[user.user_id] || []
         }));
 
+        const shiftMapping: Record<string, string> = {
+            "M": "Morning", "Morning": "Morning",
+            "A": "Afternoon", "Afternoon": "Afternoon",
+            "N": "Night", "Night": "Night"
+        };
+        const shiftsInPattern = new Set(shiftPattern.map(s => shiftMapping[s]).filter(Boolean));
+        
         const requests = [];
         const currentDate = new Date(`${startDate}T12:00:00Z`);
         const lastDate = new Date(`${endDate}T12:00:00Z`);
@@ -103,18 +130,20 @@ export async function POST(req: Request) {
             const dateKey = currentDate.toISOString().split('T')[0];
             for (const location in workerRequirements) {
                 for (const shiftType of ['Morning', 'Afternoon', 'Night']) {
-                    requests.push({
-                        date: dateKey,
-                        location,
-                        shiftType: shiftType as any,
-                        required_competencies: workerRequirements[location]
-                    });
+                    if (shiftsInPattern.has(shiftType)) {
+                        requests.push({
+                            date: dateKey,
+                            location,
+                            shiftType: shiftType as any,
+                            required_competencies: workerRequirements[location]
+                        });
+                    }
                 }
             }
             currentDate.setUTCDate(currentDate.getUTCDate() + 1);
         }
 
-        const result = await callSimulationService(employees, requests, shiftPattern);
+        const result = await callSimulationService(employees, requests, shiftPattern, ojtData);
 
         if (result.error) {
             return NextResponse.json({ success: false, message: result.error }, { status: 400 });

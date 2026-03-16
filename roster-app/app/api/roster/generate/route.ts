@@ -71,6 +71,7 @@ async function generateRosterWithPython(
     employees: Employee[], 
     requests: RequestItem[], 
     leaveData: Record<string, string[]>,
+    ojtData: Record<string, any>,
     schedulingMode: 'individual' | 'team' | 'competency' // Added 'competency'
 ): Promise<PythonRosterResult | PythonValidationError> {
     let rosterGeneratorUrl: string | undefined;
@@ -92,7 +93,7 @@ async function generateRosterWithPython(
             headers: {
                 'Content-Type': 'application/json',
             },
-            body: JSON.stringify({ employees, requests, leaveData, schedulingMode }), // Pass schedulingMode
+            body: JSON.stringify({ employees, requests, leaveData, ojtData, schedulingMode }), // Pass schedulingMode and ojtData
             signal: AbortSignal.timeout(300000) // 5 minutes
         });
 
@@ -168,6 +169,26 @@ export async function POST(req: Request) {
             leaveData[leave.user_id].push(leave.date.toISOString().split('T')[0]);
         }
 
+        // Fetch OJT data from Roster model for the date range
+        const ojtEntries = await Roster.find({
+            is_ojt: true,
+            date: {
+                $gte: new Date(`${startDate}T00:00:00Z`),
+                $lte: new Date(`${endDate}T23:59:59Z`)
+            }
+        }).lean();
+
+        const ojtData: Record<string, Record<string, Record<string, any>>> = {};
+        for (const entry of ojtEntries) {
+            const dateKey = entry.date.toISOString().split('T')[0];
+            if (!ojtData[dateKey]) ojtData[dateKey] = {};
+            if (!ojtData[dateKey][entry.user_id]) ojtData[dateKey][entry.user_id] = {};
+            ojtData[dateKey][entry.user_id][entry.shift_type] = {
+                console: entry.assigned_console,
+                location: entry.location
+            };
+        }
+
         const requests = [];
         const currentDate = new Date(`${startDate}T12:00:00Z`);
         const lastDate = new Date(`${endDate}T12:00:00Z`);
@@ -192,7 +213,7 @@ export async function POST(req: Request) {
             currentDate.setUTCDate(currentDate.getUTCDate() + 1);
         }
 
-        const pythonResponse = await generateRosterWithPython(employees, requests, leaveData, schedulingMode); // Pass schedulingMode
+        const pythonResponse = await generateRosterWithPython(employees, requests, leaveData, ojtData, schedulingMode); // Pass schedulingMode and ojtData
 
         if (isPythonValidationError(pythonResponse)) {
             // Return validation error directly from here

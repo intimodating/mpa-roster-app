@@ -24,8 +24,22 @@ const COMPETENCIES = [
 const SHIFT_TYPES = ["Morning", "Afternoon", "Night", "OFF"];
 
 const initialCompetencyRequirements: WorkerRequirements = {
-    East: COMPETENCIES.reduce((acc, comp) => ({ ...acc, [comp]: 1 }), {}),
-    West: COMPETENCIES.reduce((acc, comp) => ({ ...acc, [comp]: 1 }), {}),
+    East: {
+        "East Control": 0, "West Control": 0, "Keppel": 0, "Cruisebay": 0,
+        "VTIS East": 2, "VTIS West": 2, "VTIS Central": 1, "Sembawang Control": 0,
+        "Jurong Control": 1, "Pasir Panjang Control": 1, "Sembawang MTC": 0,
+        "Pasir Panjang MTC": 1, "VTIS MTC": 1, "PSU": 1, "Temasek MTC": 0,
+        "GMDSS": 1, "STW (PB)": 0, "Vista DO/ Sensitive Vessels": 1,
+        "STW (TU)": 1, "Changi DO": 0, "Watch IC Console": 1
+    },
+    West: {
+        "East Control": 2, "West Control": 1, "Keppel": 1, "Cruisebay": 0,
+        "VTIS East": 0, "VTIS West": 0, "VTIS Central": 0, "Sembawang Control": 1,
+        "Jurong Control": 0, "Pasir Panjang Control": 0, "Sembawang MTC": 1,
+        "Pasir Panjang MTC": 0, "VTIS MTC": 0, "PSU": 0, "Temasek MTC": 0,
+        "GMDSS": 0, "STW (PB)": 1, "Vista DO/ Sensitive Vessels": 0,
+        "STW (TU)": 1, "Changi DO": 1, "Watch IC Console": 0
+    },
 };
 
 const SimulationModal: React.FC<SimulationModalProps> = ({ onClose }) => {

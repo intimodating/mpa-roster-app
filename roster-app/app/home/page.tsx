@@ -3,9 +3,8 @@
 import React, { useState, useEffect } from 'react';
 import { useRouter } from 'next/navigation';
 import Link from 'next/link';
-import ManageWorkersModal from '../roster/ManageWorkersModal'; // Import the new modal
+import ManageWorkersModal from '../roster/ManageWorkersModal';
 
-// Define the shape of the user data we expect to store
 interface UserData {
   name: string;
   user_id: string;
@@ -16,7 +15,7 @@ export default function HomePage() {
   const router = useRouter();
   const [user, setUser] = useState<UserData | null>(null);
   const [isLoading, setIsLoading] = useState(true);
-  const [isManageWorkersModalOpen, setIsManageWorkersModalOpen] = useState(false); // State for modal
+  const [isManageWorkersModalOpen, setIsManageWorkersModalOpen] = useState(false); 
 
   useEffect(() => {
     // 1. Attempt to retrieve stored user data from local storage
