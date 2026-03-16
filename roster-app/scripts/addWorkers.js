@@ -67,7 +67,7 @@ function addWorkers(numWorkers) {
                         proficiencyGrade = getRandomInt(1, 9);
                         workersToAdd.push({
                             user_id: userId,
-                            password: userId, // As requested, password is the same as user_id
+                            password: userId, 
                             account_type: "Non-Planner",
                             proficiency_grade: proficiencyGrade,
                             name: "".concat(firstName, " ").concat(lastName),
@@ -106,8 +106,6 @@ function addWorkers(numWorkers) {
                     console.error("Error adding workers:", error_1);
                     return [3 /*break*/, 10];
                 case 9:
-                    // It's generally good practice to disconnect, but Mongoose manages connections internally in Next.js
-                    // If running as a standalone script, you might want to add mongoose.disconnect();
                     console.log("Script finished.");
                     process.exit(0);
                     return [7 /*endfinally*/];

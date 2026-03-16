@@ -140,7 +140,6 @@ export default function SimulatePage() {
 
         return {
             avgReserve: avgReserve.toFixed(1),
-            leaveCapacity: Math.max(0, Math.floor(avgReserve - 1)),
             efficiency: totalExpected > 0 ? ((totalAssigned / totalExpected) * 100).toFixed(1) : "0"
         };
     }, [dailyStatsMap]);
@@ -169,11 +168,6 @@ export default function SimulatePage() {
             title: "Avg. Reserve Pool",
             definition: "The average number of staff members available on shift but not assigned to a specific console.",
             derivation: "Calculated by mapping every staff member to your shift pattern. If they are 'On Duty' but have no console assignment, they are counted as Reserve. Average = (Sum of Reserves / Total Simulation Days)."
-        },
-        leaveCapacity: {
-            title: "Daily Leave Headroom",
-            definition: "The number of additional people who can safely be granted leave without impacting console coverage.",
-            derivation: "Calculated as (Avg. Reserves - 1). The '-1' ensures a minimum safety buffer of one person remains available."
         },
         utilization: {
             title: "Manpower Utilization",
@@ -215,11 +209,6 @@ export default function SimulatePage() {
                         <div style={styles.statLabel}>Avg. Reserve Pool ℹ️</div>
                         <div style={styles.statValue}>{analytics ? analytics.avgReserve : "..."}</div>
                         <div style={styles.statSub}>Staff free for OJT/Support per day</div>
-                    </div>
-                    <div style={styles.statCard} onClick={() => setActiveStatInfo(STAT_EXPLANATIONS.leaveCapacity)}>
-                        <div style={styles.statLabel}>Daily Leave Headroom ℹ️</div>
-                        <div style={styles.statValue}>{analytics ? `~${analytics.leaveCapacity}` : "..."}</div>
-                        <div style={styles.statSub}>Safe extra leave capacity</div>
                     </div>
                     <div style={styles.statCard} onClick={() => setActiveStatInfo(STAT_EXPLANATIONS.utilization)}>
                         <div style={styles.statLabel}>Manpower Utilization ℹ️</div>
