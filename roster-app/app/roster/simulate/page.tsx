@@ -82,9 +82,10 @@ export default function SimulatePage() {
     const dailyStatsMap = useMemo(() => {
         if (!rosterData || users.length === 0 || !meta?.startDate || !meta?.endDate) return {};
 
-        const result: Record<string, { assigned: number, expected: number, reserves: number, reserveIds: Set<string>, expectedIds: Record<string, string> }> = {};
+        const result: Record<string, { assigned: number, expected: number, reserves: number, reserveIds: Set<string>, expectedIds: Record<string, string>, leaveIds: Set<string> }> = {};
         const start = new Date(`${meta.startDate}T00:00:00Z`);
         const end = new Date(`${meta.endDate}T00:00:00Z`);
+        const leaveData = meta.leaveData || {};
         
         let curr = new Date(start);
         while (curr <= end) {
@@ -96,10 +97,18 @@ export default function SimulatePage() {
             let reserves = 0;
             const reserveIds = new Set<string>();
             const expectedIds: Record<string, string> = {};
+            const leaveIds = new Set<string>();
             
             users.forEach((u, uIdx) => {
                 const expected = getExpectedShift(uIdx, dateKey);
                 expectedIds[u.user_id] = expected;
+
+                // Check if user is on leave on this date
+                const isOnLeave = leaveData[u.user_id]?.[dateKey];
+                if (isOnLeave) {
+                    leaveIds.add(u.user_id);
+                    return; // Don't count as expected or assigned
+                }
 
                 if (expected === 'OFF') return; // Not expected to work
                 
@@ -122,7 +131,7 @@ export default function SimulatePage() {
                 }
             });
             
-            result[dateKey] = { assigned: assignedCount, expected: expectedOnDutyCount, reserves, reserveIds, expectedIds };
+            result[dateKey] = { assigned: assignedCount, expected: expectedOnDutyCount, reserves, reserveIds, expectedIds, leaveIds };
             curr.setUTCDate(curr.getUTCDate() + 1);
         }
         return result;
@@ -151,16 +160,16 @@ export default function SimulatePage() {
     };
 
     const handleDayClick = (dateKey: string) => {
-        const dayData = rosterData[dateKey];
-        if (dayData) {
-            setSelectedShiftData({
-                date: dateKey,
-                East: dayData.East,
-                West: dayData.West,
-                leaves: [] 
-            });
-            setIsViewerModalOpen(true);
-        }
+        const dayData = rosterData[dateKey] || { East: { Morning: [], Afternoon: [], Night: [] }, West: { Morning: [], Afternoon: [], Night: [] } };
+        const stats = dailyStatsMap[dateKey];
+
+        setSelectedShiftData({
+            date: dateKey,
+            East: dayData.East,
+            West: dayData.West,
+            leaves: stats ? Array.from(stats.leaveIds).map(userId => ({ user_id: userId, leave_type: 'Pending' })) : []
+        });
+        setIsViewerModalOpen(true);
     };
 
     const STAT_EXPLANATIONS = {
@@ -221,6 +230,7 @@ export default function SimulatePage() {
                     <CalendarView 
                         currentDate={currentDate} 
                         rosterData={rosterData} 
+                        dailyStatsMap={dailyStatsMap}
                         onDayClick={handleDayClick}
                         changeMonth={(d: number) => setCurrentDate(prev => new Date(prev.getFullYear(), prev.getMonth() + d, 1))}
                     />
@@ -268,7 +278,7 @@ export default function SimulatePage() {
     );
 }
 
-const CalendarView: React.FC<any> = ({ currentDate, rosterData, changeMonth, onDayClick }) => {
+const CalendarView: React.FC<any> = ({ currentDate, rosterData, dailyStatsMap, changeMonth, onDayClick }) => {
     const month = currentDate.getMonth();
     const year = currentDate.getFullYear();
     const firstDayOfMonth = new Date(year, month, 1).getDay();
@@ -297,27 +307,32 @@ const CalendarView: React.FC<any> = ({ currentDate, rosterData, changeMonth, onD
                     
                     const dateKey = `${year}-${String(month + 1).padStart(2, '0')}-${String(day).padStart(2, '0')}`;
                     const dayData = rosterData[dateKey];
-                    const hasShift = !!dayData;
+                    const stats = dailyStatsMap[dateKey];
+                    const leaveCount = stats?.leaveIds?.size || 0;
+                    const hasActivity = !!dayData || leaveCount > 0;
 
                     return (
                         <div 
                             key={dateKey} 
-                            style={{...calStyles.day, backgroundColor: hasShift ? '#2e4034' : '#333', cursor: hasShift ? 'pointer' : 'default'}}
-                            onClick={() => hasShift && onDayClick(dateKey)}
+                            style={{...calStyles.day, backgroundColor: hasActivity ? '#2e4034' : '#333', cursor: hasActivity ? 'pointer' : 'default'}}
+                            onClick={() => hasActivity && onDayClick(dateKey)}
                         >
                             <div style={calStyles.dayNum}>{day}</div>
-                            {dayData && (
-                                <div style={calStyles.shifts}>
-                                    {['Morning', 'Afternoon', 'Night'].map(st => {
-                                        const count = (dayData.East[st]?.length || 0) + (dayData.West[st]?.length || 0);
-                                        return count > 0 ? (
-                                            <div key={st} style={{...calStyles.indicator, backgroundColor: st==='Morning'?'#34a853':st==='Afternoon'?'#4285F4':'#8a2be2'}}>
-                                                {st[0]}: {count}
-                                            </div>
-                                        ) : null;
-                                    })}
-                                </div>
-                            )}
+                            <div style={calStyles.shifts}>
+                                {dayData && ['Morning', 'Afternoon', 'Night'].map(st => {
+                                    const count = (dayData.East[st]?.length || 0) + (dayData.West[st]?.length || 0);
+                                    return count > 0 ? (
+                                        <div key={st} style={{...calStyles.indicator, backgroundColor: st==='Morning'?'#34a853':st==='Afternoon'?'#4285F4':'#8a2be2'}}>
+                                            {st[0]}: {count}
+                                        </div>
+                                    ) : null;
+                                })}
+                                {leaveCount > 0 && (
+                                    <div style={{...calStyles.indicator, backgroundColor: '#007bff', fontWeight: 'bold'}}>
+                                        L: {leaveCount}
+                                    </div>
+                                )}
+                            </div>
                         </div>
                     );
                 })}
@@ -356,7 +371,10 @@ const SimulationMatrixView: React.FC<any> = ({ currentDate, rosterData, changeMo
                         <span style={{width: '12px', height: '12px', color: '#666', border: '1px solid #444', textAlign: 'center'}}>0</span> Pattern OFF
                     </span>
                     <span style={{display: 'flex', alignItems: 'center', gap: '5px'}}>
-                        <span style={{width: '12px', height: '12px', backgroundColor: '#ffd700', border: '1px solid #000'}}></span> Reserve (On Duty, Unassigned)
+                        <span style={{width: '12px', height: '12px', backgroundColor: '#ffd700', border: '1px solid #000'}}></span> Reserve (R)
+                    </span>
+                    <span style={{display: 'flex', alignItems: 'center', gap: '5px'}}>
+                        <span style={{width: '12px', height: '12px', backgroundColor: '#007bff', border: '1px solid #000'}}></span> Pending Leave (L)
                     </span>
                 </div>
             </div>
@@ -392,18 +410,19 @@ const SimulationMatrixView: React.FC<any> = ({ currentDate, rosterData, changeMo
 
                                     const isReserve = stats?.reserveIds.has(u.user_id);
                                     const isOff = stats?.expectedIds[u.user_id] === 'OFF';
+                                    const isOnLeave = stats?.leaveIds.has(u.user_id);
                                     
                                     const cellStyle = {
                                         ...matStyles.td,
-                                        backgroundColor: isReserve ? '#ffd700' : 'transparent',
-                                        color: isReserve ? '#000' : isOff ? '#666' : '#ccc',
-                                        fontWeight: isReserve ? 'bold' : 'normal',
-                                        border: isReserve ? '1px solid #000' : '1px solid #444',
+                                        backgroundColor: isOnLeave ? '#007bff' : isReserve ? '#ffd700' : 'transparent',
+                                        color: isOnLeave ? '#fff' : isReserve ? '#000' : isOff ? '#666' : '#ccc',
+                                        fontWeight: (isReserve || isOnLeave) ? 'bold' : 'normal',
+                                        border: (isReserve || isOnLeave) ? '1px solid #000' : '1px solid #444',
                                     };
 
                                     return (
                                         <td key={d} style={cellStyle}>
-                                            {actualShift || (isOff ? '0' : isReserve ? 'R' : '')}
+                                            {isOnLeave ? 'L' : actualShift || (isOff ? '0' : isReserve ? 'R' : '')}
                                         </td>
                                     );
                                 })}

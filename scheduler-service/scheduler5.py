@@ -37,7 +37,31 @@ def main(data):
     employees_data = data.get("employees", [])
     requests_data = data.get("requests", [])
     leave_data = data.get("leaveData", {})
+    pending_leaves = data.get("pendingLeaves", [])
     ojt_data = data.get("ojtData", {}) # { date: { user_id: { shift_type: console, ... } } }
+
+    # --- Preprocess Pending Leaves (Decompose date ranges) ---
+    if pending_leaves:
+        sys.stderr.write(f"Scheduler5: Processing {len(pending_leaves)} pending leaves...\n")
+        from datetime import datetime, timedelta
+        for leave in pending_leaves:
+            u_id = leave.get("user_id")
+            s_date_str = leave.get("start_date").split('T')[0]
+            e_date_str = leave.get("end_date").split('T')[0]
+            
+            try:
+                curr_date = datetime.strptime(s_date_str, "%Y-%m-%d")
+                end_date = datetime.strptime(e_date_str, "%Y-%m-%d")
+                
+                if u_id not in leave_data:
+                    leave_data[u_id] = {}
+                    
+                while curr_date <= end_date:
+                    d_str = curr_date.strftime("%Y-%m-%d")
+                    leave_data[u_id][d_str] = True
+                    curr_date += timedelta(days=1)
+            except Exception as e:
+                sys.stderr.write(f"Scheduler5: Error decomposing leave for {u_id}: {e}\n")
 
     # Simulation specific parameters
     custom_pattern = data.get("shiftPattern", []) 
@@ -47,7 +71,7 @@ def main(data):
     if pattern_length == 0:
         return json.dumps({"error": "Shift pattern cannot be empty."})
 
-    sys.stderr.write(f"Scheduler4 (Simulation): employees={len(employees_data)}, requests={len(requests_data)}, pattern={pattern_length}\n")  
+    sys.stderr.write(f"Scheduler5 (Simulation with Pending Leaves): employees={len(employees_data)}, requests={len(requests_data)}, pattern={pattern_length}\n")  
 
     model = cp_model.CpModel()
 
@@ -75,7 +99,7 @@ def main(data):
         scarcity_scores[comp] = req_total / (count + 0.1)
 
     all_ordered_consoles = sorted(scarcity_scores.keys(), key=lambda x: scarcity_scores[x], reverse=True)
-    sys.stderr.write(f"Scheduler4: Consoles sorted by scarcity: {all_ordered_consoles}\n")
+    sys.stderr.write(f"Scheduler5: Consoles sorted by scarcity: {all_ordered_consoles}\n")
 
     # --- Balanced Offset Assignment (if not provided) ---
     employee_offsets = {}
@@ -126,7 +150,7 @@ def main(data):
     # Pre-map user_id to e_idx
     user_to_idx = {emp["id"]: i for i, emp in enumerate(employees_data)}
 
-    sys.stderr.write(f"Scheduler4: Processing {len(ojt_data)} dates for OJT...\n")
+    sys.stderr.write(f"Scheduler5: Processing {len(ojt_data)} dates for OJT...\n")
     ojt_count = 0
     for date_str, users in ojt_data.items():
         if date_str not in date_to_index: 
@@ -153,7 +177,7 @@ def main(data):
                     "shift_name": shift_name,
                     "is_ojt": True
                 })
-    sys.stderr.write(f"Scheduler4: Successfully blocked {ojt_count} OJT slots.\n")
+    sys.stderr.write(f"Scheduler5: Successfully blocked {ojt_count} OJT slots.\n")
 
     # --- Variables ---
     assign = {}
@@ -236,8 +260,8 @@ def main(data):
             if expected_s != OFF:
                 shift_capacity[expected_s] += 1
     
-    sys.stderr.write(f"Scheduler4: Total Slots Required: {total_slots_required}\n")
-    sys.stderr.write(f"Scheduler4: Capacity by Shift Pattern: {shift_capacity}\n")
+    sys.stderr.write(f"Scheduler5: Total Slots Required: {total_slots_required}\n")
+    sys.stderr.write(f"Scheduler5: Capacity by Shift Pattern: {shift_capacity}\n")
 
     # --- Constraints ---
     for (e_idx, d_idx), vars_list in emp_day_vars.items():
@@ -340,8 +364,8 @@ def main(data):
 
     status = solver.Solve(model)
 
-    sys.stderr.write(f"Scheduler4: Solver Status: {solver.StatusName(status)}\n")
-    sys.stderr.write(f"Scheduler4: Objective Value: {solver.ObjectiveValue()}\n")
+    sys.stderr.write(f"Scheduler5: Solver Status: {solver.StatusName(status)}\n")
+    sys.stderr.write(f"Scheduler5: Objective Value: {solver.ObjectiveValue()}\n")
 
     if status not in (cp_model.OPTIMAL, cp_model.FEASIBLE):
         return json.dumps({"error": f"Solver status: {solver.StatusName(status)}"})
@@ -378,7 +402,7 @@ def main(data):
         })
 
     total_working_slots = sum(shift_capacity.values())
-    sys.stderr.write(f"Scheduler4: Total Assignments: {assigned_count}\n")
-    sys.stderr.write(f"Scheduler4: Total Reserve Pool Slots: {total_working_slots - assigned_count}\n")
+    sys.stderr.write(f"Scheduler5: Total Assignments: {assigned_count}\n")
+    sys.stderr.write(f"Scheduler5: Total Reserve Pool Slots: {total_working_slots - assigned_count}\n")
 
     return json.dumps(roster)

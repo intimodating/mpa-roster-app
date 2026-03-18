@@ -8,6 +8,7 @@ from scheduler import main as individual_scheduler_main
 from scheduler2 import main as team_scheduler_main
 from scheduler3 import main as competency_scheduler_main
 from scheduler4 import main as simulation_scheduler_main
+from scheduler5 import main as simulation_pending_scheduler_main
 
 app = Flask(__name__)
 
@@ -32,8 +33,11 @@ def handle_generate_roster():
             sys.stderr.write("Dispatcher: Calling competency-based scheduler...\n")
             result = competency_scheduler_main(input_data)
         elif scheduling_mode == "simulation":
-            sys.stderr.write("Dispatcher: Calling simulation-based scheduler...\n")
+            sys.stderr.write("Dispatcher: Calling simulation-based scheduler (Scheduler4)...\n")
             result = simulation_scheduler_main(input_data)
+        elif scheduling_mode == "simulation-pending":
+            sys.stderr.write("Dispatcher: Calling simulation-pending scheduler (Scheduler5)...\n")
+            result = simulation_pending_scheduler_main(input_data)
         else:
             sys.stderr.write("Dispatcher: Calling individual-based scheduler...\n")
             result = individual_scheduler_main(input_data)
