@@ -46,6 +46,7 @@ const SimulationModal: React.FC<SimulationModalProps> = ({ onClose }) => {
   const router = useRouter();
   const [startDate, setStartDate] = useState('');
   const [endDate, setEndDate] = useState('');
+  const [includePendingLeaves, setIncludePendingLeaves] = useState(false);
   const [competencyRequirements, setCompetencyRequirements] = useState<WorkerRequirements>(initialCompetencyRequirements);
   const [shiftPattern, setShiftPattern] = useState<string[]>(["Morning", "Morning", "Afternoon", "Afternoon", "OFF", "Night", "Night", "OFF", "OFF"]);
   const [isLoading, setIsLoading] = useState(false);
@@ -106,14 +107,21 @@ const SimulationModal: React.FC<SimulationModalProps> = ({ onClose }) => {
             startDate, 
             endDate, 
             workerRequirements: competencyRequirements, 
-            shiftPattern 
+            shiftPattern,
+            includePendingLeaves
         }),
       });
       const data = await res.json();
       if (data.success) {
         // Store in sessionStorage to pass to the simulation page
         sessionStorage.setItem('simulatedRoster', JSON.stringify(data.roster));
-        sessionStorage.setItem('simulationMeta', JSON.stringify({ startDate, endDate, shiftPattern }));
+        sessionStorage.setItem('simulationMeta', JSON.stringify({ 
+          startDate, 
+          endDate, 
+          shiftPattern, 
+          includePendingLeaves,
+          leaveData: data.leaveData 
+        }));
         router.push('/roster/simulate');
       } else {
         setError(data.message || 'Simulation failed.');
@@ -172,6 +180,19 @@ const SimulationModal: React.FC<SimulationModalProps> = ({ onClose }) => {
                     <label>End Date:</label>
                     <input type="date" value={endDate} onChange={(e) => setEndDate(e.target.value)} style={styles.input} />
                 </div>
+            </div>
+
+            <div style={{ marginTop: '20px', display: 'flex', alignItems: 'center', gap: '10px' }}>
+              <input 
+                type="checkbox" 
+                id="pendingLeaves" 
+                checked={includePendingLeaves} 
+                onChange={(e) => setIncludePendingLeaves(e.target.checked)}
+                style={{ width: '20px', height: '20px', cursor: 'pointer' }}
+              />
+              <label htmlFor="pendingLeaves" style={{ cursor: 'pointer', fontWeight: 'bold', color: '#82ca9d' }}>
+                Include Pending Block Leaves
+              </label>
             </div>
 
             <div style={styles.tabsContainer}>

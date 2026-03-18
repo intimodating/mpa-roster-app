@@ -78,7 +78,7 @@ export default function BlockLeavesCalendarPage() {
         try {
             const monthStr = String(month + 1).padStart(2, '0');
 
-            // Fetch approved leaves from the new route
+            // Fetch approved leaves
             const approvedRes = await fetch(`/api/leave/fetch-approved-block-advance-month?year=${year}&month=${monthStr}`);
             const approvedData = await approvedRes.json();
             if (approvedData.success) {
@@ -92,22 +92,28 @@ export default function BlockLeavesCalendarPage() {
                 setPendingLeaves(pendingData.data);
             }
 
-            // Fetch rejected leaves for the current user if not a Planner
-            if (userId) { // Only fetch rejected for a specific user
-                const rejectedRes = await fetch(`/api/block-leave/fetch-rejected-user?user_id=${userId}`);
-                const rejectedData = await rejectedRes.json();
-                if (rejectedData.success) {
-                    // Filter rejected leaves that fall within the current month/year view
+            // Fetch rejected leaves
+            const rejectedUrl = userId 
+                ? `/api/block-leave/fetch-rejected-user?user_id=${userId}`
+                : `/api/block-leave/fetch-rejected-month?year=${year}&month=${monthStr}`;
+            
+            const rejectedRes = await fetch(rejectedUrl);
+            const rejectedData = await rejectedRes.json();
+            
+            if (rejectedData.success) {
+                if (userId) {
+                    // Filter for user and month overlap
                     const startOfMonth = moment.utc([year, month, 1]);
                     const endOfMonth = moment.utc([year, month, 1]).endOf('month');
-
                     const filteredRejected = rejectedData.data.filter((leave: RejectedBlockLeave) => {
                         const leaveStart = moment.utc(leave.start_date);
                         const leaveEnd = moment.utc(leave.end_date);
-                        // Check if leave period overlaps with the current month
                         return (leaveStart.isSameOrBefore(endOfMonth, 'day') && leaveEnd.isSameOrAfter(startOfMonth, 'day'));
                     });
                     setRejectedLeaves(filteredRejected);
+                } else {
+                    // Planner: Already filtered by month via API
+                    setRejectedLeaves(rejectedData.data);
                 }
             }
         } catch (error) {
@@ -177,27 +183,33 @@ export default function BlockLeavesCalendarPage() {
         });
 
         pendingLeaves.forEach(leave => {
-            for (let d = moment.utc(leave.start_date); d.isSameOrBefore(moment.utc(leave.end_date)); d.add(1, 'days')) {
+            let d = moment.utc(leave.start_date).startOf('day');
+            const end = moment.utc(leave.end_date).startOf('day');
+            while (d.isSameOrBefore(end)) {
                 const dayStr = d.format('YYYY-MM-DD');
                 if (summary[dayStr]) {
                     if (leave.leave_type === 'block') summary[dayStr].pending_block++;
                     else summary[dayStr].pending_advance++;
                 }
+                d.add(1, 'days');
             }
         });
 
         rejectedLeaves.forEach(leave => {
-            for (let d = moment.utc(leave.start_date); d.isSameOrBefore(moment.utc(leave.end_date)); d.add(1, 'days')) {
+            let d = moment.utc(leave.start_date).startOf('day');
+            const end = moment.utc(leave.end_date).startOf('day');
+            while (d.isSameOrBefore(end)) {
                 const dayStr = d.format('YYYY-MM-DD');
                 if (summary[dayStr]) {
                     if (leave.leave_type === 'block') summary[dayStr].rejected_block++;
                     else summary[dayStr].rejected_advance++;
                 }
+                d.add(1, 'days');
             }
         });
 
         return summary;
-    }, [approvedLeaves, pendingLeaves, daysInMonth, user]);
+    }, [approvedLeaves, pendingLeaves, rejectedLeaves, daysInMonth, user]);
 
     if (isLoading || !user) {
         return <div style={styles.center}>Loading...</div>;
@@ -214,16 +226,16 @@ export default function BlockLeavesCalendarPage() {
         <div style={styles.calendarGrid}>
             <div style={calendarHeaderRowStyle}>
                 <div style={styles.calendarHeaderCell}>Employee</div>
-                {daysInMonth.map(day => (
-                    <div key={day.toISOString()} style={styles.calendarHeaderCell}>
+                {daysInMonth.map((day, dIdx) => (
+                    <div key={`header-day-${dIdx}-${day.toISOString()}`} style={styles.calendarHeaderCell}>
                         {moment.utc(day).format('DD')}
                     </div>
                 ))}
             </div>
-            {allUsers.map(emp => (
-                <div key={emp.user_id} style={calendarRowStyle}>
+            {allUsers.map((emp, eIdx) => (
+                <div key={`emp-row-${emp.user_id}-${eIdx}`} style={calendarRowStyle}>
                     <div style={styles.calendarCell}>{emp.name}</div>
-                    {daysInMonth.map(day => {
+                    {daysInMonth.map((day, dIdx) => {
                         let leaveStatus = null;
                         let rejectionReason = '';
                         // Use moment.utc() for all comparisons
@@ -257,7 +269,7 @@ export default function BlockLeavesCalendarPage() {
                         }
 
                         return (
-                            <div key={day.toISOString()} style={{ ...styles.calendarCell, backgroundColor }} title={rejectionReason}>
+                            <div key={`cell-${emp.user_id}-${day.toISOString()}-${dIdx}`} style={{ ...styles.calendarCell, backgroundColor }} title={rejectionReason}>
                                 {cellText}
                             </div>
                         );
@@ -280,20 +292,20 @@ export default function BlockLeavesCalendarPage() {
             <div style={styles.calendarGrid}>
                 <div style={calendarHeaderRowStyle}>
                     <div style={styles.calendarHeaderCell}>Leave Type</div>
-                    {daysInMonth.map(day => (
-                        <div key={day.toISOString()} style={styles.calendarHeaderCell}>
+                    {daysInMonth.map((day, dIdx) => (
+                        <div key={`summary-header-day-${dIdx}-${day.toISOString()}`} style={styles.calendarHeaderCell}>
                             {moment.utc(day).format('DD')}
                         </div>
                     ))}
                 </div>
-                {summaryRows.map(row => (
-                    <div key={row.key} style={calendarRowStyle}>
+                {summaryRows.map((row, rIdx) => (
+                    <div key={`summary-row-${row.key}-${rIdx}`} style={calendarRowStyle}>
                         <div style={styles.calendarCell}>{row.label}</div>
-                        {daysInMonth.map(day => {
+                        {daysInMonth.map((day, dIdx) => {
                             const dayStr = moment.utc(day).format('YYYY-MM-DD');
                             const count = summaryData?.[dayStr]?.[row.key] ?? 0;
                             return (
-                                <div key={day.toISOString()} style={{...styles.calendarCell, backgroundColor: count > 0 ? '#5a5a5a' : '#3c3c3c' }}>
+                                <div key={`summary-cell-${row.key}-${day.toISOString()}-${dIdx}`} style={{...styles.calendarCell, backgroundColor: count > 0 ? '#5a5a5a' : '#3c3c3c' }}>
                                     {count > 0 ? count : ''}
                                 </div>
                             );

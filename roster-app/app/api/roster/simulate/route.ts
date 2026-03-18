@@ -13,6 +13,7 @@ interface SimulatePayload {
     endDate: string;
     workerRequirements: WorkerRequirements;
     shiftPattern: string[];
+    includePendingLeaves?: boolean;
 }
 
 interface Employee {
@@ -33,7 +34,10 @@ async function callSimulationService(
     employees: Employee[], 
     requests: RequestItem[], 
     shiftPattern: string[],
-    ojtData: Record<string, Record<string, Record<string, string>>>
+    ojtData: Record<string, Record<string, Record<string, string>>>,
+    leaveData: Record<string, Record<string, boolean>> = {},
+    schedulingMode: string = 'simulation',
+    pendingLeaves: any[] = []
 ) {
     let rosterGeneratorUrl: string | undefined;
 
@@ -53,9 +57,10 @@ async function callSimulationService(
                 employees, 
                 requests, 
                 shiftPattern, 
-                schedulingMode: 'simulation',
-                leaveData: {}, // Simulation assumes everyone is available for the test
-                ojtData
+                schedulingMode,
+                leaveData,
+                ojtData,
+                pendingLeaves
             }),
             signal: AbortSignal.timeout(300000)
         });
@@ -69,7 +74,7 @@ async function callSimulationService(
 
 export async function POST(req: Request) {
     try {
-        const { startDate, endDate, workerRequirements, shiftPattern }: SimulatePayload = await req.json();
+        const { startDate, endDate, workerRequirements, shiftPattern, includePendingLeaves }: SimulatePayload = await req.json();
 
         if (!startDate || !endDate || !shiftPattern) {
             return NextResponse.json({ success: false, message: "Dates and pattern are required" }, { status: 400 });
@@ -97,7 +102,8 @@ export async function POST(req: Request) {
 
         const ojtData: Record<string, Record<string, Record<string, string>>> = {};
         ojtAssignments.forEach((ojt: any) => {
-            const dateKey = ojt.date.toISOString().split('T')[0];
+            const d = new Date(ojt.date);
+            const dateKey = `${d.getUTCFullYear()}-${String(d.getUTCMonth() + 1).padStart(2, '0')}-${String(d.getUTCDate()).padStart(2, '0')}`;
             if (!ojtData[dateKey]) ojtData[dateKey] = {};
             if (!ojtData[dateKey][ojt.user_id]) ojtData[dateKey][ojt.user_id] = {};
             ojtData[dateKey][ojt.user_id][ojt.shift_type] = ojt.assigned_console;
@@ -143,13 +149,50 @@ export async function POST(req: Request) {
             currentDate.setUTCDate(currentDate.getUTCDate() + 1);
         }
 
-        const result = await callSimulationService(employees, requests, shiftPattern, ojtData);
+        let leaveData: Record<string, Record<string, boolean>> = {};
+        let pendingLeavesData: any[] = [];
+        let schedulingMode = 'simulation';
+
+        if (includePendingLeaves) {
+            schedulingMode = 'simulation-pending';
+            const PendingBlockLeave = (await import("../../../../models/pending_block_leaves")).default;
+            const fetchedPendingLeaves = await PendingBlockLeave.find({
+                $or: [
+                    { start_date: { $gte: start, $lte: end } },
+                    { end_date: { $gte: start, $lte: end } },
+                    { start_date: { $lte: start }, end_date: { $gte: end } }
+                ]
+            }).lean();
+            
+            pendingLeavesData = fetchedPendingLeaves.map((l: any) => ({
+                user_id: l.user_id,
+                start_date: l.start_date.toISOString(),
+                end_date: l.end_date.toISOString()
+            }));
+
+            // Populate leaveData for frontend visualization
+            fetchedPendingLeaves.forEach((leave: any) => {
+                const leaveStart = new Date(leave.start_date);
+                const leaveEnd = new Date(leave.end_date);
+                const curr = new Date(leaveStart);
+                while (curr <= leaveEnd) {
+                    const dateKey = curr.toISOString().split('T')[0];
+                    if (dateKey >= startDate && dateKey <= endDate) {
+                        if (!leaveData[leave.user_id]) leaveData[leave.user_id] = {};
+                        leaveData[leave.user_id][dateKey] = true;
+                    }
+                    curr.setUTCDate(curr.getUTCDate() + 1);
+                }
+            });
+        }
+
+        const result = await callSimulationService(employees, requests, shiftPattern, ojtData, {}, schedulingMode, pendingLeavesData);
 
         if (result.error) {
             return NextResponse.json({ success: false, message: result.error }, { status: 400 });
         }
 
-        return NextResponse.json({ success: true, roster: result });
+        return NextResponse.json({ success: true, roster: result, leaveData });
 
     } catch (error) {
         console.error("Simulation API Error:", error);
