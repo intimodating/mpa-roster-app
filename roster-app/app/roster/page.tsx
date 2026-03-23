@@ -9,6 +9,7 @@ import GenerateRosterModal from './GenerateRosterModal';
 import SimulationModal from './SimulationModal';
 import LeaveHistoryModal from './LeaveHistoryModal';
 import MatrixView from './MatrixView';
+import ExportReportModal from './ExportReportModal';
 
 
 // --- INTERFACES ---
@@ -21,6 +22,7 @@ interface UserData {
 export interface WorkerAssignment {
   user_id: string;
   assigned_console?: string;
+  is_ojt?: boolean;
 }
 
 interface ShiftDetails {
@@ -62,6 +64,7 @@ export default function RosterPage() {
   const [isLeaveHistoryModalOpen, setIsLeaveHistoryModalOpen] = useState(false);
   const [selectedShiftData, setSelectedShiftData] = useState<ShiftData | null>(null);
   const [viewMode, setViewMode] = useState<'calendar' | 'matrix'>('calendar');
+  const [isExportReportModalOpen, setIsExportReportModalOpen] = useState(false);
 
   // AI Summary State
   const [summary, setSummary] = useState('');
@@ -287,6 +290,9 @@ export default function RosterPage() {
               <button style={styles.plannerButton} onClick={() => router.push('/leave-requests')}>
                 Leave requests
               </button>
+              <button style={{...styles.plannerButton, backgroundColor: '#6c757d', backgroundImage: 'none'}} onClick={() => setIsExportReportModalOpen(true)}>
+                Export Report
+              </button>
             </>
           )}
           <button style={styles.leaveButton} onClick={() => setIsLeaveModalOpen(true)}>
@@ -373,6 +379,12 @@ export default function RosterPage() {
           user={user}
         />
       )}
+
+      {isExportReportModalOpen && (
+        <ExportReportModal
+          onClose={() => setIsExportReportModalOpen(false)}
+        />
+      )}
     </div>
   );
 }
@@ -431,9 +443,16 @@ const CalendarView: React.FC<CalendarProps> = React.memo(({ currentDate, changeM
             const plannerRoster = rosterData as RosterMap;
             const shiftsEast = plannerRoster[dateKey]?.East || { Morning: [], Afternoon: [], Night: [] };
             const shiftsWest = plannerRoster[dateKey]?.West || { Morning: [], Afternoon: [], Night: [] };
+            
             const totalMorningShift = shiftsEast.Morning.length + shiftsWest.Morning.length;
+            const ojtMorningCount = shiftsEast.Morning.filter(w => w.is_ojt).length + shiftsWest.Morning.filter(w => w.is_ojt).length;
+            
             const totalAfternoonShift = shiftsEast.Afternoon.length + shiftsWest.Afternoon.length;
+            const ojtAfternoonCount = shiftsEast.Afternoon.filter(w => w.is_ojt).length + shiftsWest.Afternoon.filter(w => w.is_ojt).length;
+            
             const totalNightShift = shiftsEast.Night.length + shiftsWest.Night.length;
+            const ojtNightCount = shiftsEast.Night.filter(w => w.is_ojt).length + shiftsWest.Night.filter(w => w.is_ojt).length;
+            
             const hasShift = totalMorningShift > 0 || totalAfternoonShift > 0 || totalNightShift > 0;
             const leavesOnDay = leavesData[dateKey] || [];
 
@@ -454,9 +473,21 @@ const CalendarView: React.FC<CalendarProps> = React.memo(({ currentDate, changeM
                     Leave: {leavesOnDay.length}
                   </div>
                 )}
-                {totalMorningShift > 0 && <div style={{...calStyles.shiftIndicator, backgroundColor: '#34a853', marginTop: '3px'}}>Morning: {totalMorningShift}</div>}
-                {totalAfternoonShift > 0 && <div style={{...calStyles.shiftIndicator, backgroundColor: '#4285F4', marginTop: '3px'}}>Afternoon: {totalAfternoonShift}</div>}
-                {totalNightShift > 0 && <div style={{...calStyles.shiftIndicator, backgroundColor: '#8a2be2', marginTop: '3px'}}>Night: {totalNightShift}</div>}
+                {totalMorningShift > 0 && (
+                  <div style={{...calStyles.shiftIndicator, backgroundColor: '#34a853', marginTop: '3px'}}>
+                    Morning: {totalMorningShift}{ojtMorningCount > 0 ? ` (${ojtMorningCount} OJT)` : ''}
+                  </div>
+                )}
+                {totalAfternoonShift > 0 && (
+                  <div style={{...calStyles.shiftIndicator, backgroundColor: '#4285F4', marginTop: '3px'}}>
+                    Afternoon: {totalAfternoonShift}{ojtAfternoonCount > 0 ? ` (${ojtAfternoonCount} OJT)` : ''}
+                  </div>
+                )}
+                {totalNightShift > 0 && (
+                  <div style={{...calStyles.shiftIndicator, backgroundColor: '#8a2be2', marginTop: '3px'}}>
+                    Night: {totalNightShift}{ojtNightCount > 0 ? ` (${ojtNightCount} OJT)` : ''}
+                  </div>
+                )}
               </div>
             );
           } else { // Non-Planner view
@@ -476,7 +507,11 @@ const CalendarView: React.FC<CalendarProps> = React.memo(({ currentDate, changeM
               >
                 <div style={calStyles.dayNumber}>{day}</div>
                 {status && (
-                  <div style={{...calStyles.shiftIndicator, backgroundColor: isLeave ? '#FFD700' : '#dc3545', color: isLeave ? 'black' : 'white'}}>
+                  <div style={{
+                    ...calStyles.shiftIndicator, 
+                    backgroundColor: isLeave || status.startsWith('OJT:') ? '#FFD700' : '#dc3545', 
+                    color: isLeave || status.startsWith('OJT:') ? 'black' : 'white'
+                  }}>
                     {status}
                   </div>
                 )}

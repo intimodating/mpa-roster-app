@@ -112,16 +112,16 @@ export default function HomePage() {
                                   </Link>
 
                                   <Link href="/competencies" passHref>
-
                                     <button style={{ ...styles.rosterButton, marginLeft: '10px' }}>
-
                                       View Staff Competencies
-
                                     </button>
-
                                   </Link>
-
-                                </>
+                                  <Link href="/staff-profiles" passHref>
+                                    <button style={{ ...styles.rosterButton, marginLeft: '10px', backgroundImage: 'linear-gradient(45deg, #f09433 0%, #e6683c 25%, #dc2743 50%, #cc2366 75%, #bc1888 100%)' }}>
+                                      Staff Profiles
+                                    </button>
+                                  </Link>
+                                  </>
 
                               )}        </div>
 
