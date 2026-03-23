@@ -2,7 +2,7 @@ import { NextResponse } from 'next/server';
 import { connectToDatabase } from '../../../../../lib/mongoose-client';
 import Competency from '../../../../../models/competencies';
 
-export async function GET(req: Request, { params }: { params: { user_id: string } }) {
+export async function GET(req: Request, { params }: { params: Promise<{ user_id: string }> }) {
     try {
         const { user_id } = await params;
 

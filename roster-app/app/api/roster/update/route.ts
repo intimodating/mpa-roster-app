@@ -88,31 +88,32 @@ export async function POST(req: Request) {
             }
         }
 
-        // Calculate OJT diff
-        const oldOjtKeys = new Set(existingOjtAssignments.map(a => `${a.user_id}|${a.assigned_console}`));
-        const newOjtKeys = new Set(newAssignments.filter(a => a.is_ojt).map(a => `${a.user_id}|${a.assigned_console}`));
+        // Calculate OJT diff using a count-based approach for each (user, console)
+        const ojtDeltaMap: Record<string, number> = {}; // key: "user_id|console"
 
-        const ojtToIncrement = newAssignments.filter(a => a.is_ojt && !oldOjtKeys.has(`${a.user_id}|${a.assigned_console}`));
-        const ojtToDecrement = existingOjtAssignments.filter(a => !newOjtKeys.has(`${a.user_id}|${a.assigned_console}`));
+        // New OJT assignments
+        for (const a of newAssignments.filter(a => a.is_ojt)) {
+            const key = `${a.user_id}|${a.assigned_console}`;
+            ojtDeltaMap[key] = (ojtDeltaMap[key] || 0) + 1;
+        }
+
+        // Existing OJT assignments (to be removed)
+        for (const a of existingOjtAssignments) {
+            const key = `${a.user_id}|${a.assigned_console}`;
+            ojtDeltaMap[key] = (ojtDeltaMap[key] || 0) - 1;
+        }
 
         // Update OJT Collection
         const ojtOps: any[] = [];
         
-        for (const item of ojtToIncrement) {
+        for (const [key, delta] of Object.entries(ojtDeltaMap)) {
+            if (delta === 0) continue;
+            const [user_id, console] = key.split('|');
             ojtOps.push({
                 updateOne: {
-                    filter: { user_id: item.user_id, console: item.assigned_console },
-                    update: { $inc: { shift_number: 1 } },
+                    filter: { user_id, console },
+                    update: { $inc: { shift_number: delta } },
                     upsert: true
-                }
-            });
-        }
-
-        for (const item of ojtToDecrement) {
-            ojtOps.push({
-                updateOne: {
-                    filter: { user_id: item.user_id, console: item.assigned_console },
-                    update: { $inc: { shift_number: -1 } }
                 }
             });
         }

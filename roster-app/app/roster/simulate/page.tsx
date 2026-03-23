@@ -2,6 +2,7 @@
 import React, { useState, useEffect, useMemo, useCallback } from 'react';
 import { useRouter } from 'next/navigation';
 import ShiftViewerModal from '../ShiftViewerModal';
+import ShiftDetailsModal from '../ShiftDetailsModal';
 
 const DEFAULT_PATTERN = ["Morning", "Morning", "Afternoon", "Afternoon", "OFF", "Night", "Night", "OFF", "OFF"];
 
@@ -15,6 +16,12 @@ export default function SimulatePage() {
     const [viewMode, setViewMode] = useState<'calendar' | 'matrix'>('calendar');
     const [users, setUsers] = useState<any[]>([]);
     const [activeStatInfo, setActiveStatInfo] = useState<{ title: string, definition: string, derivation: string } | null>(null);
+
+    // Modal state for SimulationMatrixView
+    const [isShiftDetailsModalOpen, setIsShiftDetailsModalOpen] = useState(false);
+    const [selectedDetails, setSelectedDetails] = useState<any[]>([]);
+    const [selectedUserName, setSelectedUserName] = useState<string>('');
+    const [selectedDate, setSelectedDate] = useState<string>('');
 
     // 1. Initial Load of Simulation Data
     useEffect(() => {
@@ -137,6 +144,47 @@ export default function SimulatePage() {
         return result;
     }, [rosterData, users, getExpectedShift, meta]);
 
+    const handleSimulationMatrixCellClick = useCallback((user: any, dateKey: string) => {
+        const dayData = rosterData[dateKey];
+        const stats = dailyStatsMap[dateKey];
+        const details: any[] = [];
+
+        if (dayData) {
+            ['East', 'West'].forEach(loc => {
+                ['Morning', 'Afternoon', 'Night'].forEach(type => {
+                    const found = dayData[loc][type]?.find((w: any) => w.user_id === user.user_id);
+                    if (found) {
+                        details.push({
+                            location: loc,
+                            type,
+                            console: found.assigned_console,
+                            isOjt: !!found.is_ojt
+                        });
+                    }
+                });
+            });
+        }
+
+        // If no specific console assignment but user is a reserve on this day, add a Reserve entry
+        if (details.length === 0 && stats?.reserveIds.has(user.user_id)) {
+            // Determine which shift they are on based on pattern
+            const expectedShift = stats.expectedIds[user.user_id];
+            if (expectedShift !== 'OFF') {
+                details.push({
+                    location: 'N/A',
+                    type: expectedShift,
+                    console: 'Reserve (R)',
+                    isOjt: false
+                });
+            }
+        }
+
+        setSelectedDetails(details);
+        setSelectedUserName(user.name);
+        setSelectedDate(dateKey);
+        setIsShiftDetailsModalOpen(true);
+    }, [rosterData, dailyStatsMap]);
+
     // 5. Analytics derived from the integrated map
     const analytics = useMemo(() => {
         const statsArray = Object.values(dailyStatsMap);
@@ -242,6 +290,7 @@ export default function SimulatePage() {
                         users={users}
                         dailyStatsMap={dailyStatsMap}
                         changeMonth={(d: number) => setCurrentDate(prev => new Date(prev.getFullYear(), prev.getMonth() + d, 1))}
+                        onCellClick={handleSimulationMatrixCellClick}
                     />
                 )}
 
@@ -341,7 +390,7 @@ const CalendarView: React.FC<any> = ({ currentDate, rosterData, dailyStatsMap, c
     );
 };
 
-const SimulationMatrixView: React.FC<any> = ({ currentDate, rosterData, changeMonth, shiftPattern, users, dailyStatsMap }) => {
+const SimulationMatrixView: React.FC<any> = ({ currentDate, rosterData, changeMonth, shiftPattern, users, dailyStatsMap, onCellClick }) => {
     const month = currentDate.getMonth();
     const year = currentDate.getFullYear();
     const daysInMonth = new Date(year, month + 1, 0).getDate();
@@ -366,6 +415,9 @@ const SimulationMatrixView: React.FC<any> = ({ currentDate, rosterData, changeMo
                 <div style={{display: 'flex', gap: '20px', justifyContent: 'center', padding: '10px', fontSize: '0.8em'}}>
                     <span style={{display: 'flex', alignItems: 'center', gap: '5px'}}>
                         <span style={{width: '12px', height: '12px', border: '1px solid #444'}}></span> Assigned (1, 2, 3)
+                    </span>
+                    <span style={{display: 'flex', alignItems: 'center', gap: '5px'}}>
+                        <span style={{width: '12px', height: '12px', backgroundColor: '#e0b0ff', border: '1px solid #000'}}></span> OJT (1T, 2T, 3T)
                     </span>
                     <span style={{display: 'flex', alignItems: 'center', gap: '5px'}}>
                         <span style={{width: '12px', height: '12px', color: '#666', border: '1px solid #444', textAlign: 'center'}}>0</span> Pattern OFF
@@ -397,12 +449,18 @@ const SimulationMatrixView: React.FC<any> = ({ currentDate, rosterData, changeMo
                                     const stats = dailyStatsMap[dateKey];
                                     
                                     let actualShift = '';
+                                    let isOjt = false;
                                     if (dayRoster) {
                                         ['Morning', 'Afternoon', 'Night'].forEach((st, idx) => {
                                             const locations = ['East', 'West'];
                                             locations.forEach(loc => {
-                                                if (dayRoster[loc][st]?.some((w: any) => w.user_id === u.user_id)) {
+                                                const worker = dayRoster[loc][st]?.find((w: any) => w.user_id === u.user_id);
+                                                if (worker) {
                                                     actualShift = (idx + 1).toString();
+                                                    if (worker.is_ojt) {
+                                                        actualShift += 'T';
+                                                        isOjt = true;
+                                                    }
                                                 }
                                             });
                                         });
@@ -414,14 +472,15 @@ const SimulationMatrixView: React.FC<any> = ({ currentDate, rosterData, changeMo
                                     
                                     const cellStyle = {
                                         ...matStyles.td,
-                                        backgroundColor: isOnLeave ? '#007bff' : isReserve ? '#ffd700' : 'transparent',
-                                        color: isOnLeave ? '#fff' : isReserve ? '#000' : isOff ? '#666' : '#ccc',
-                                        fontWeight: (isReserve || isOnLeave) ? 'bold' : 'normal',
-                                        border: (isReserve || isOnLeave) ? '1px solid #000' : '1px solid #444',
+                                        backgroundColor: isOnLeave ? '#007bff' : isOjt ? '#e0b0ff' : isReserve ? '#ffd700' : 'transparent',
+                                        color: isOnLeave ? '#fff' : (isOjt || isReserve) ? '#000' : isOff ? '#666' : '#ccc',
+                                        fontWeight: (isReserve || isOnLeave || isOjt) ? 'bold' : 'normal',
+                                        border: (isReserve || isOnLeave || isOjt) ? '1px solid #000' : '1px solid #444',
+                                        cursor: 'pointer',
                                     };
 
                                     return (
-                                        <td key={d} style={cellStyle}>
+                                        <td key={d} style={cellStyle} onClick={() => onCellClick(u, dateKey)}>
                                             {isOnLeave ? 'L' : actualShift || (isOff ? '0' : isReserve ? 'R' : '')}
                                         </td>
                                     );

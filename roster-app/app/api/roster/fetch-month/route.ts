@@ -54,7 +54,7 @@ export async function GET(req: Request) {
         };
 
         if (user.account_type === 'Planner') {
-            const assignments = await Roster.find(dateFilter).select('user_id shift_type date location assigned_console -_id');
+            const assignments = await Roster.find(dateFilter).select('user_id shift_type date location assigned_console is_ojt -_id');
             const rosterMap: RosterMap = {};
 
             assignments.forEach(assignment => {
@@ -73,7 +73,8 @@ export async function GET(req: Request) {
                 if (location && (shiftType === 'Morning' || shiftType === 'Afternoon' || shiftType === 'Night') && rosterMap[dateKey][location]) {
                     rosterMap[dateKey][location][shiftType].push({
                         user_id: assignment.user_id,
-                        assigned_console: assignment.assigned_console
+                        assigned_console: assignment.assigned_console,
+                        is_ojt: !!assignment.is_ojt
                     });
                 }
             });
@@ -100,10 +101,17 @@ export async function GET(req: Request) {
         } else { // Non-Planner
             const userStatusMap: Record<string, string> = {};
 
-            const userAssignments = await Roster.find({ ...dateFilter, user_id: userId }).select('shift_type date -_id');
+            const userAssignments = await Roster.find({ ...dateFilter, user_id: userId }).select('shift_type is_ojt date -_id');
             userAssignments.forEach(assignment => {
                 const dateKey = assignment.date.toISOString().split('T')[0];
-                userStatusMap[dateKey] = assignment.shift_type;
+                const status = assignment.is_ojt ? `OJT: ${assignment.shift_type}` : assignment.shift_type;
+                
+                // If there's already a status (e.g. multiple shifts), append it
+                if (userStatusMap[dateKey]) {
+                    userStatusMap[dateKey] += `, ${status}`;
+                } else {
+                    userStatusMap[dateKey] = status;
+                }
             });
 
             const userLeaves = await Leave.find({ ...dateFilter, user_id: userId, status: 'Approved' }).select('date -_id');

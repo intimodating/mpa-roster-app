@@ -2,6 +2,7 @@
 import React, { useMemo, useState, useEffect } from 'react';
 import { RosterMap, ShiftData } from './page'; // Assuming these types are exported from page.tsx
 import LeaveDetailsModal from './LeaveDetailsModal';
+import ShiftDetailsModal from './ShiftDetailsModal';
 
 // --- INTERFACES ---
 interface UserData {
@@ -25,9 +26,16 @@ const MatrixView: React.FC<MatrixViewProps> = React.memo(({ currentDate, rosterD
   const daysInMonth = new Date(year, month + 1, 0).getDate();
   const [nonPlannerUsers, setNonPlannerUsers] = useState<UserData[]>([]);
   const [isLoadingUsers, setIsLoadingUsers] = useState(true);
+  
+  // Modals state
   const [isLeaveDetailsModalOpen, setIsLeaveDetailsModalOpen] = useState(false);
   const [selectedLeaveDetails, setSelectedLeaveDetails] = useState<any>(null);
   const [selectedLeaveUserName, setSelectedLeaveUserName] = useState<string>('');
+
+  const [isShiftDetailsModalOpen, setIsShiftDetailsModalOpen] = useState(false);
+  const [selectedShiftDetails, setSelectedShiftDetails] = useState<any[]>([]);
+  const [selectedShiftUserName, setSelectedShiftUserName] = useState<string>('');
+  const [selectedShiftDate, setSelectedShiftDate] = useState<string>('');
 
   // Generate an array of day numbers for the current month
   const daysOfMonth = useMemo(() => {
@@ -36,23 +44,44 @@ const MatrixView: React.FC<MatrixViewProps> = React.memo(({ currentDate, rosterD
 
   const handleCellClick = async (targetUser: UserData, day: number) => {
     const dateKey = `${year}-${String(month + 1).padStart(2, '0')}-${String(day).padStart(2, '0')}`;
+    
+    // Check for leaves first
     const leaveForUserOnDay = leavesData[dateKey]?.find(leave => leave.user_id === targetUser.user_id);
-    const isOnLeave = !!leaveForUserOnDay;
-
-    if (isOnLeave) {
-      try {
-        // No need to fetch again, as we already have leaveForUserOnDay
-        if (leaveForUserOnDay) {
-            setSelectedLeaveDetails(leaveForUserOnDay);
-            setSelectedLeaveUserName(targetUser.name);
-            setIsLeaveDetailsModalOpen(true);
-        } else {
-            console.warn("Leave details not found for this user and date.");
-        }
-      } catch (error) {
-        console.error("Error fetching leave history:", error);
-      }
+    if (leaveForUserOnDay) {
+        setSelectedLeaveDetails(leaveForUserOnDay);
+        setSelectedLeaveUserName(targetUser.name);
+        setIsLeaveDetailsModalOpen(true);
+        return;
     }
+
+    // Otherwise show shift details
+    const dayRoster = rosterData[dateKey];
+    const details: any[] = [];
+
+    if (dayRoster) {
+        const checkShifts = (location: 'East' | 'West') => {
+            const locData = dayRoster[location];
+            ['Morning', 'Afternoon', 'Night'].forEach(type => {
+                const workers = locData[type as keyof typeof locData];
+                const found = workers.find(w => w.user_id === targetUser.user_id);
+                if (found) {
+                    details.push({
+                        location,
+                        type,
+                        console: found.assigned_console,
+                        isOjt: !!found.is_ojt
+                    });
+                }
+            });
+        };
+        checkShifts('East');
+        checkShifts('West');
+    }
+
+    setSelectedShiftDetails(details);
+    setSelectedShiftUserName(targetUser.name);
+    setSelectedShiftDate(dateKey);
+    setIsShiftDetailsModalOpen(true);
   };
 
   // Fetch all users and filter for non-planners
@@ -114,40 +143,51 @@ const MatrixView: React.FC<MatrixViewProps> = React.memo(({ currentDate, rosterD
                     const leaveForUserOnDay = leavesData[dateKey]?.find(leave => leave.user_id === user.user_id);
                     const isOnLeave = !!leaveForUserOnDay;
 
-                    let backgroundColor = matrixStyles.td.backgroundColor;
-                    if (isOnLeave) {
-                      backgroundColor = leaveForUserOnDay?.sub_leave_type ? 'orange' : 'blue';
-                    }
-
                     const shifts: string[] = [];
                     const dayRoster = rosterData[dateKey];
 
                     if (dayRoster) {
+                      const getUserShift = (assignments: any[], userId: string, label: string) => {
+                        const found = assignments.find(w => w.user_id === userId);
+                        if (!found) return null;
+                        return found.is_ojt ? `${label}T` : label;
+                      };
+
                       // Check East shifts
-                      if (dayRoster.East.Morning.some(w => w.user_id === user.user_id)) shifts.push('1');
-                      if (dayRoster.East.Afternoon.some(w => w.user_id === user.user_id)) shifts.push('2');
-                      if (dayRoster.East.Night.some(w => w.user_id === user.user_id)) shifts.push('3');
+                      const eM = getUserShift(dayRoster.East.Morning, user.user_id, '1');
+                      if (eM) shifts.push(eM);
+                      const eA = getUserShift(dayRoster.East.Afternoon, user.user_id, '2');
+                      if (eA) shifts.push(eA);
+                      const eN = getUserShift(dayRoster.East.Night, user.user_id, '3');
+                      if (eN) shifts.push(eN);
+
                       // Check West shifts
-                      if (dayRoster.West.Morning.some(w => w.user_id === user.user_id)) shifts.push('1');
-                      if (dayRoster.West.Afternoon.some(w => w.user_id === user.user_id)) shifts.push('2');
-                      if (dayRoster.West.Night.some(w => w.user_id === user.user_id)) shifts.push('3');
+                      const wM = getUserShift(dayRoster.West.Morning, user.user_id, '1');
+                      if (wM) shifts.push(wM);
+                      const wA = getUserShift(dayRoster.West.Afternoon, user.user_id, '2');
+                      if (wA) shifts.push(wA);
+                      const wN = getUserShift(dayRoster.West.Night, user.user_id, '3');
+                      if (wN) shifts.push(wN);
+                    }
+
+                    let backgroundColor = matrixStyles.td.backgroundColor;
+                    if (isOnLeave) {
+                      backgroundColor = leaveForUserOnDay?.sub_leave_type ? 'orange' : 'blue';
+                    } else if (shifts.some(s => s.includes('T'))) {
+                      backgroundColor = '#FFD700'; // Yellow for OJT
                     }
                     
-                    const cellContent = isOnLeave ? 'L' : [...new Set(shifts)].join(',') || '';
+                    const cellContent = isOnLeave ? 'L' : [...new Set(shifts)].join(',') || '0';
 
                     return (
                       <td
                         key={dateKey}
                         style={{
                           ...matrixStyles.td,
-                          cursor: isOnLeave ? 'pointer' : 'default',
+                          cursor: 'pointer',
                           backgroundColor: backgroundColor,
                         }}
-                        onClick={() => {
-                          if (isOnLeave) {
-                            handleCellClick(user, day);
-                          }
-                        }}
+                        onClick={() => handleCellClick(user, day)}
                       >
                         {cellContent}
                       </td>
@@ -169,6 +209,15 @@ const MatrixView: React.FC<MatrixViewProps> = React.memo(({ currentDate, rosterD
           leaveDetails={selectedLeaveDetails}
           userName={selectedLeaveUserName}
           onClose={() => setIsLeaveDetailsModalOpen(false)}
+        />
+      )}
+
+      {isShiftDetailsModalOpen && (
+        <ShiftDetailsModal
+            date={selectedShiftDate}
+            userName={selectedShiftUserName}
+            shifts={selectedShiftDetails}
+            onClose={() => setIsShiftDetailsModalOpen(false)}
         />
       )}
     </div>
