@@ -60,10 +60,7 @@ export default function HomePage() {
   return (
     <div style={styles.root}>
       <div style={styles.container}>
-        <h1 style={styles.header}>Welcome, {user.name}! 🚀</h1>
-        <p style={styles.subheader}>
-          Your User ID is: **{user.user_id}**
-        </p>
+        <h1 style={styles.header}>Welcome, {user.name}! </h1>
         
         <div style={styles.contentBox}>
           <h2>MPA Roster Dashboard</h2>

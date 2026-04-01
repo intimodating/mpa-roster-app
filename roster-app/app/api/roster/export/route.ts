@@ -42,9 +42,14 @@ export async function POST(req: Request) {
             const userShifts = shifts.filter((s: any) => s.user_id === user.user_id);
             const userLeaves = leaves.filter((l: any) => l.user_id === user.user_id);
 
-            const morningCount = userShifts.filter((s: any) => s.shift_type === 'Morning').length;
-            const afternoonCount = userShifts.filter((s: any) => s.shift_type === 'Afternoon').length;
-            const nightCount = userShifts.filter((s: any) => s.shift_type === 'Night').length;
+            const eastMorningCount = userShifts.filter((s: any) => s.shift_type === 'Morning' && s.location === 'East').length;
+            const eastAfternoonCount = userShifts.filter((s: any) => s.shift_type === 'Afternoon' && s.location === 'East').length;
+            const eastNightCount = userShifts.filter((s: any) => s.shift_type === 'Night' && s.location === 'East').length;
+
+            const westMorningCount = userShifts.filter((s: any) => s.shift_type === 'Morning' && s.location === 'West').length;
+            const westAfternoonCount = userShifts.filter((s: any) => s.shift_type === 'Afternoon' && s.location === 'West').length;
+            const westNightCount = userShifts.filter((s: any) => s.shift_type === 'Night' && s.location === 'West').length;
+
             const ojtCount = userShifts.filter((s: any) => s.is_ojt).length;
             
             const totalShifts = userShifts.length;
@@ -56,9 +61,12 @@ export async function POST(req: Request) {
             return {
                 "Staff ID": user.user_id,
                 "Staff Name": user.name || user.user_id,
-                "Total Morning": morningCount,
-                "Total Afternoon": afternoonCount,
-                "Total Night": nightCount,
+                "Total East Morning": eastMorningCount,
+                "Total East Afternoon": eastAfternoonCount,
+                "Total East Night": eastNightCount,
+                "Total West Morning": westMorningCount,
+                "Total West Afternoon": westAfternoonCount,
+                "Total West Night": westNightCount,
                 "Total OJT": ojtCount,
                 "Total Shifts": totalShifts,
                 "Total Off Days": offDays,
