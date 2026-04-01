@@ -1,4 +1,5 @@
 import React, { useState, useEffect, useMemo } from 'react';
+import ExportDayShiftButton from './ExportDayShiftButton';
 
 // --- INTERFACES ---
 interface UserDetails {
@@ -229,7 +230,10 @@ const ShiftEditorModal: React.FC<ModalProps> = ({ shiftData, onClose, onSave }) 
     return (
         <div style={modalStyles.backdrop}>
             <div style={modalStyles.modal}>
-                <h2 style={modalStyles.header}>Edit Roster for {shiftData.date}</h2>
+                <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', borderBottom: '1px solid #555', marginBottom: '20px', paddingBottom: '10px' }}>
+                    <h2 style={{ ...modalStyles.header, borderBottom: 'none', marginBottom: 0, paddingBottom: 0 }}>Edit Roster for {shiftData.date}</h2>
+                    <ExportDayShiftButton shiftData={shifts} userLookup={userLookup} />
+                </div>
                 
                 {shiftData.leaves && shiftData.leaves.length > 0 && (
                     <div style={modalStyles.leavesContainer}>

@@ -54,8 +54,29 @@ export default function RosterPage() {
   const [rosterData, setRosterData] = useState<RosterMap | UserStatusMap>({});
   const [leavesData, setLeavesData] = useState<LeavesMap>({});
   const [isPlanner, setIsPlanner] = useState(false);
+  const [userLookup, setUserLookup] = useState<Record<string, { name: string }>>({});
   
-  // Modal State
+  // --- AUTHENTICATION CHECK ---
+// ... (rest of component)
+  // --- FETCH ALL USERS EFFECT (for names in modals/export) ---
+  useEffect(() => {
+    const fetchAllUsers = async () => {
+        try {
+            const res = await fetch('/api/users/all');
+            const result = await res.json();
+            if (result.success) {
+                const lookup = result.data.reduce((acc: any, u: any) => {
+                    acc[u.user_id] = { name: u.name };
+                    return acc;
+                }, {});
+                setUserLookup(lookup);
+            }
+        } catch (error) {
+            console.error("Error fetching all users:", error);
+        }
+    };
+    fetchAllUsers();
+  }, []);
   const [isModalOpen, setIsModalOpen] = useState(false);
   const [isViewerModalOpen, setIsViewerModalOpen] = useState(false);
   const [isLeaveModalOpen, setIsLeaveModalOpen] = useState(false);
@@ -167,20 +188,28 @@ export default function RosterPage() {
   };
 
   const handleDayClick = (dateKey: string) => {
+    const rosterMap = rosterData as RosterMap;
+    const existingData = rosterMap[dateKey];
+    const leavesOnDay = leavesData[dateKey] || [];
+    
+    // Ensure existingData matches the expected structure for RosterMap
+    // If it's the non-planner string status, we ignore it here and just show empty/leave
+    const dataForModal: ShiftData = {
+        date: dateKey, 
+        East: (existingData as any)?.East || { Morning: [], Afternoon: [], Night: [] },
+        West: (existingData as any)?.West || { Morning: [], Afternoon: [], Night: [] },
+        leaves: leavesOnDay
+    };
+    
+    setSelectedShiftData(dataForModal);
     if (isPlanner) {
-        const rosterMap = rosterData as RosterMap;
-        const existingData = rosterMap[dateKey];
-        const leavesOnDay = leavesData[dateKey] || [];
-        const dataForModal: ShiftData = {
-            date: dateKey, 
-            East: existingData?.East || { Morning: [], Afternoon: [], Night: [] },
-            West: existingData?.West || { Morning: [], Afternoon: [], Night: [] },
-            leaves: leavesOnDay
-        };
-        setSelectedShiftData(dataForModal);
         setIsModalOpen(true);
+    } else {
+        // Non-planners might not have the full roster data in rosterData
+        // (the API might only return their own status for non-planners)
+        // Let's check the API response for non-planners.
+        setIsViewerModalOpen(true);
     }
-    // For non-planners, do nothing on click, as the status is already visible on the calendar.
   };
 
   const handleSaveShifts = async (updatedData: ShiftData) => {
@@ -350,6 +379,7 @@ export default function RosterPage() {
       {isViewerModalOpen && selectedShiftData && (
         <ShiftViewerModal
           shiftData={selectedShiftData}
+          userLookup={userLookup}
           onClose={() => setIsViewerModalOpen(false)}
         />
       )}
@@ -500,10 +530,11 @@ const CalendarView: React.FC<CalendarProps> = React.memo(({ currentDate, changeM
                 key={dateKey}
                 style={{
                   ...calStyles.dayCell,
-                  cursor: 'default',
+                  cursor: 'pointer',
                   backgroundColor: status ? '#2E4034' : '#3b3b3b',
                   border: isToday ? '2px solid #1a73e8' : '1px solid #555'
                 }}
+                onClick={() => onDayClick(dateKey)}
               >
                 <div style={calStyles.dayNumber}>{day}</div>
                 {status && (
@@ -541,7 +572,7 @@ const styles: Record<string, React.CSSProperties> = {
     paddingTop: '100px',
   },
   container: {
-    maxWidth: '1000px',
+    maxWidth: '1400px',
     margin: '0 auto',
     backgroundColor: '#2c2c2c',
     padding: '30px',
@@ -558,6 +589,7 @@ const styles: Record<string, React.CSSProperties> = {
     justifyContent: 'center',
     gap: '15px',
     marginBottom: '30px',
+    flexWrap: 'wrap',
   },
   plannerButton: {
     padding: '10px 20px',

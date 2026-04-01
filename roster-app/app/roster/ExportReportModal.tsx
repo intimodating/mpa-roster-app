@@ -43,15 +43,17 @@ const ExportReportModal: React.FC<ExportReportModalProps> = ({ onClose }) => {
             worksheet.columns = [
                 { header: 'Staff ID', key: 'Staff ID', width: 25 },
                 { header: 'Staff Name', key: 'Staff Name', width: 30 },
-                { header: 'Total Morning', key: 'Total Morning', width: 15 },
-                { header: 'Total Afternoon', key: 'Total Afternoon', width: 15 },
-                { header: 'Total Night', key: 'Total Night', width: 15 },
+                { header: 'Total East Morning', key: 'Total East Morning', width: 20 },
+                { header: 'Total East Afternoon', key: 'Total East Afternoon', width: 20 },
+                { header: 'Total East Night', key: 'Total East Night', width: 20 },
+                { header: 'Total West Morning', key: 'Total West Morning', width: 20 },
+                { header: 'Total West Afternoon', key: 'Total West Afternoon', width: 20 },
+                { header: 'Total West Night', key: 'Total West Night', width: 20 },
                 { header: 'Total OJT', key: 'Total OJT', width: 15 },
                 { header: 'Total Shifts', key: 'Total Shifts', width: 15 },
                 { header: 'Total Off Days', key: 'Total Off Days', width: 15 },
                 { header: 'Total Leaves', key: 'Total Leaves', width: 15 },
             ];
-
             // 2. Style Header Row
             const headerRow = worksheet.getRow(1);
             headerRow.font = { bold: true, color: { argb: 'FFFFFFFF' } };

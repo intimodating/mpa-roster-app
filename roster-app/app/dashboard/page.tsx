@@ -30,11 +30,17 @@ interface TeamProficiencyData {
     [key: number]: number; // Proficiency grades
 }
 
+interface NightShiftDistributionData {
+  nightShifts: number;
+  userCount: number;
+}
+
 export default function DashboardPage() {
   const [leaveData, setLeaveData] = useState<LeaveAnalyticsData[]>([]);
   const [deploymentData, setDeploymentData] = useState<DeploymentAnalyticsData[]>([]);
   const [workforceData, setWorkforceData] = useState<WorkforceData[]>([]);
   const [teamProficiencyData, setTeamProficiencyData] = useState<TeamProficiencyData[]>([]);
+  const [nightShiftData, setNightShiftData] = useState<NightShiftDistributionData[]>([]);
   const [isLoading, setIsLoading] = useState(true);
   const [isDeploymentChartLoading, setIsDeploymentChartLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
@@ -44,7 +50,20 @@ export default function DashboardPage() {
   // State for filters
   const currentYear = new Date().getFullYear();
   const [selectedYear, setSelectedYear] = useState(currentYear);
+  const [startDate, setStartDate] = useState(() => {
+    const d = new Date();
+    return new Date(d.getFullYear(), d.getMonth(), 1).toISOString().split('T')[0];
+  });
+  const [endDate, setEndDate] = useState(() => {
+    const d = new Date();
+    return new Date(d.getFullYear(), d.getMonth() + 1, 0).toISOString().split('T')[0];
+  });
   const [availableYears] = useState([currentYear, currentYear - 1, currentYear - 2, currentYear - 3, currentYear - 4]);
+  const monthNames = [
+    "January", "February", "March", "April", "May", "June",
+    "July", "August", "September", "October", "November", "December"
+  ];
+
   const allGrades = Array.from({ length: 9 }, (_, i) => i + 1);
   const [selectedGrades, setSelectedGrades] = useState<number[]>(allGrades);
   const [activeGrades, setActiveGrades] = useState<number[]>(allGrades); // For fetching
@@ -71,18 +90,21 @@ export default function DashboardPage() {
         const deploymentUrl = `/api/analytics/deployment-rate?year=${selectedYear}&grades=${gradesQuery}`;
         const workforceUrl = `/api/analytics/workforce-structure`;
         const teamProficiencyUrl = `/api/analytics/team-proficiency`;
+        const nightShiftUrl = `/api/analytics/night-shift-distribution?startDate=${startDate}&endDate=${endDate}`;
 
-        const [leaveRes, deploymentRes, workforceRes, teamProficiencyRes] = await Promise.all([
+        const [leaveRes, deploymentRes, workforceRes, teamProficiencyRes, nightShiftRes] = await Promise.all([
           fetch(leaveUrl),
           fetch(deploymentUrl),
           fetch(workforceUrl),
           fetch(teamProficiencyUrl),
+          fetch(nightShiftUrl),
         ]);
 
         const leaveJson = await leaveRes.json();
         const deploymentJson = await deploymentRes.json();
         const workforceJson = await workforceRes.json();
         const teamProficiencyJson = await teamProficiencyRes.json();
+        const nightShiftJson = await nightShiftRes.json();
 
         if (leaveJson.success) setLeaveData(leaveJson.data);
         else throw new Error(leaveJson.message || 'Failed to fetch leave analytics');
@@ -96,6 +118,9 @@ export default function DashboardPage() {
         if (teamProficiencyJson.success) setTeamProficiencyData(teamProficiencyJson.data);
         else throw new Error(teamProficiencyJson.message || 'Failed to fetch team proficiency data');
 
+        if (nightShiftJson.success) setNightShiftData(nightShiftJson.data);
+        else throw new Error(nightShiftJson.message || 'Failed to fetch night shift distribution');
+
       } catch (err: any) {
         console.error("Dashboard fetch error:", err);
         setError(err.message || 'An unexpected error occurred while fetching data.');
@@ -107,7 +132,7 @@ export default function DashboardPage() {
     };
 
     fetchData();
-  }, [selectedYear]);
+  }, [selectedYear, startDate, endDate]);
 
   const handleGradeChange = (grade: number) => {
     setSelectedGrades(prev =>
@@ -164,7 +189,7 @@ export default function DashboardPage() {
       <div style={styles.filtersContainer}>
         {/* Year Filter */}
         <div style={styles.filterGroup}>
-          <label htmlFor="year-select" style={styles.filterLabel}>Year:</label>
+          <label htmlFor="year-select" style={styles.filterLabel}>Year (General):</label>
           <select
             id="year-select"
             value={selectedYear}
@@ -176,6 +201,56 @@ export default function DashboardPage() {
             ))}
           </select>
         </div>
+
+        {/* Date Range Filter for Night Shift Distribution */}
+        <div style={styles.filterGroup}>
+          <label style={styles.filterLabel}>Night Shift Period (Start):</label>
+          <input
+            type="date"
+            value={startDate}
+            onChange={(e) => setStartDate(e.target.value)}
+            style={styles.select}
+          />
+        </div>
+        <div style={styles.filterGroup}>
+          <label style={styles.filterLabel}>Night Shift Period (End):</label>
+          <input
+            type="date"
+            value={endDate}
+            onChange={(e) => setEndDate(e.target.value)}
+            style={styles.select}
+          />
+        </div>
+      </div>
+
+      <div style={styles.chartSection}>
+        <h2 style={styles.chartTitle}>Night Shift Distribution (Staff) - {startDate} to {endDate}</h2>
+        <p style={{ textAlign: 'center', color: '#ccc', marginBottom: '10px' }}>
+          Shows how many staff worked a specific number of night shifts in this period.
+        </p>
+        <ResponsiveContainer width="100%" height={300}>
+          <BarChart data={nightShiftData} margin={{ top: 20, right: 30, left: 20, bottom: 20 }}>
+            <CartesianGrid strokeDasharray="3 3" stroke="#444" />
+            <XAxis 
+              dataKey="nightShifts" 
+              stroke="#ccc" 
+              label={{ value: 'Number of Night Shifts', position: 'insideBottom', offset: -10, fill: '#ccc' }}
+            />
+            <YAxis 
+              stroke="#ccc" 
+              label={{ value: 'Number of Staff', angle: -90, position: 'insideLeft', fill: '#ccc' }}
+            />
+            <Tooltip
+              contentStyle={{ backgroundColor: '#333', border: '1px solid #555', color: '#fff' }}
+              itemStyle={{ color: '#fff' }}
+              formatter={(value: any) => [value, 'Staff']}
+              labelFormatter={(label: any) => `${label} Night Shifts`}
+            />
+            <Bar dataKey="userCount" fill="#ff7300" name="Staff">
+              <LabelList dataKey="userCount" position="top" fill="#fff" />
+            </Bar>
+          </BarChart>
+        </ResponsiveContainer>
       </div>
 
       <div style={styles.chartSection}>

@@ -1,7 +1,7 @@
-
 // app/roster/ShiftViewerModal.tsx
 "use client";
 import React, { useState } from 'react';
+import ExportDayShiftButton from './ExportDayShiftButton';
 
 interface WorkerAssignment {
     user_id: string;
@@ -30,6 +30,7 @@ interface ShiftData {
 
 interface Props {
     shiftData: ShiftData;
+    userLookup: Record<string, { name: string }>;
     onClose: () => void;
 }
 
@@ -40,7 +41,7 @@ const CONSOLE_ORDER = [
     "STW(PB)", "GMDSS", "Vista DO"
 ];
 
-const ShiftViewerModal: React.FC<Props> = ({ shiftData, onClose }) => {
+const ShiftViewerModal: React.FC<Props> = ({ shiftData, userLookup, onClose }) => {
     const [activeLocation, setActiveLocation] = useState<'East' | 'West'>('East');
 
     const sortWorkers = (workers: WorkerAssignment[]) => {
@@ -66,7 +67,7 @@ const ShiftViewerModal: React.FC<Props> = ({ shiftData, onClose }) => {
                     <ul style={styles.employeeList}>
                         {normalWorkers.length === 0 ? <li style={styles.employeeItem}>None</li> : sortWorkers(normalWorkers).map(emp => (
                             <li key={emp.user_id} style={styles.employeeItem}>
-                                <span style={styles.workerId}>{emp.user_id}</span>
+                                <span style={styles.workerId}>{userLookup[emp.user_id]?.name || emp.user_id}</span>
                                 {emp.assigned_console && <span style={styles.consoleTag}>{emp.assigned_console}</span>}
                             </li>
                         ))}
@@ -77,7 +78,7 @@ const ShiftViewerModal: React.FC<Props> = ({ shiftData, onClose }) => {
                     <ul style={styles.employeeList}>
                         {ojtWorkers.length === 0 ? <li style={styles.employeeItem}>None</li> : sortWorkers(ojtWorkers).map(emp => (
                             <li key={emp.user_id} style={{ ...styles.employeeItem, borderLeft: '2px solid #ffc658', paddingLeft: '5px' }}>
-                                <span style={styles.workerId}>{emp.user_id}</span>
+                                <span style={styles.workerId}>{userLookup[emp.user_id]?.name || emp.user_id}</span>
                                 {emp.assigned_console && <span style={styles.consoleTag}>{emp.assigned_console}</span>}
                             </li>
                         ))}
@@ -90,13 +91,16 @@ const ShiftViewerModal: React.FC<Props> = ({ shiftData, onClose }) => {
     return (
         <div style={styles.overlay}>
             <div style={styles.modal}>
-                <h2 style={styles.header}>Shift Details for {shiftData.date}</h2>
+                <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '20px' }}>
+                    <h2 style={{ ...styles.header, marginBottom: 0 }}>Shift Details for {shiftData.date}</h2>
+                    <ExportDayShiftButton shiftData={shiftData} userLookup={userLookup} />
+                </div>
                 
                 {shiftData.leaves && shiftData.leaves.length > 0 && (
                     <div style={styles.leavesContainer}>
                         <h3 style={styles.shiftTitle}>On Leave</h3>
                         <ul style={styles.employeeList}>
-                            {shiftData.leaves.map(leave => <li key={leave.user_id} style={styles.employeeItem}>{leave.user_id}</li>)}
+                            {shiftData.leaves.map(leave => <li key={leave.user_id} style={styles.employeeItem}>{userLookup[leave.user_id]?.name || leave.user_id}</li>)}
                         </ul>
                     </div>
                 )}
