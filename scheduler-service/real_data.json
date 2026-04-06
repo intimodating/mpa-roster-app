@@ -1,0 +1,1887 @@
+[
+  {
+    "id": "abdul.hadi",
+    "name": "abdul.hadi",
+    "competencies": [
+      "East Control",
+      "West Control"
+    ],
+    "offset": 0
+  },
+  {
+    "id": "abdul.rahman.bin.norahim",
+    "name": "abdul.rahman.bin.norahim",
+    "competencies": [
+      "East Control",
+      "West Control",
+      "Cruisebay",
+      "VTIS East",
+      "VTIS West",
+      "Sembawang Control",
+      "Jurong Control",
+      "Pasir Panjang Control"
+    ],
+    "offset": 0
+  },
+  {
+    "id": "almutanazi'ah.binte.md.shah",
+    "name": "almutanazi'ah.binte.md.shah",
+    "competencies": [
+      "East Control",
+      "West Control",
+      "Cruisebay",
+      "VTIS East",
+      "VTIS West",
+      "Jurong Control",
+      "Pasir Panjang Control"
+    ],
+    "offset": 0
+  },
+  {
+    "id": "aniq.zufar.bin.bambang.sumaryono",
+    "name": "aniq.zufar.bin.bambang.sumaryono",
+    "competencies": [
+      "East Control",
+      "West Control",
+      "VTIS East",
+      "VTIS West"
+    ],
+    "offset": 0
+  },
+  {
+    "id": "anwar.zuhair.b.azlin",
+    "name": "anwar.zuhair.b.azlin",
+    "competencies": [
+      "East Control",
+      "West Control",
+      "VTIS East",
+      "VTIS West"
+    ],
+    "offset": 0
+  },
+  {
+    "id": "ashraf.emir.bin.lutfi.emir",
+    "name": "ashraf.emir.bin.lutfi.emir",
+    "competencies": [
+      "East Control",
+      "West Control",
+      "VTIS East",
+      "VTIS West"
+    ],
+    "offset": 0
+  },
+  {
+    "id": "azahar.bin.samat",
+    "name": "azahar.bin.samat",
+    "competencies": [
+      "East Control",
+      "West Control",
+      "Keppel",
+      "Cruisebay",
+      "VTIS East",
+      "VTIS West",
+      "VTIS Central",
+      "Sembawang Control",
+      "Jurong Control",
+      "Pasir Panjang Control",
+      "Sembawang MTC",
+      "Pasir Panjang MTC"
+    ],
+    "offset": 0
+  },
+  {
+    "id": "azmee.bin.abu.bakar",
+    "name": "azmee.bin.abu.bakar",
+    "competencies": [
+      "East Control",
+      "West Control",
+      "Keppel",
+      "Cruisebay",
+      "VTIS East",
+      "VTIS West",
+      "VTIS Central",
+      "PSU"
+    ],
+    "offset": 0
+  },
+  {
+    "id": "bakhitiar.bin.abu.bakar",
+    "name": "bakhitiar.bin.abu.bakar",
+    "competencies": [
+      "STW (PB)",
+      "Vista DO/ Sensitive Vessels",
+      "Changi DO",
+      "Watch IC Console"
+    ],
+    "offset": 0
+  },
+  {
+    "id": "basil.rego",
+    "name": "basil.rego",
+    "competencies": [
+      "STW (PB)",
+      "Vista DO/ Sensitive Vessels",
+      "STW (TU)"
+    ],
+    "offset": 0
+  },
+  {
+    "id": "borkar.shivanand.satyendra",
+    "name": "borkar.shivanand.satyendra",
+    "competencies": [
+      "GMDSS",
+      "Vista DO/ Sensitive Vessels",
+      "STW (TU)"
+    ],
+    "offset": 0
+  },
+  {
+    "id": "chen.hainan",
+    "name": "chen.hainan",
+    "competencies": [
+      "GMDSS",
+      "STW (PB)",
+      "Vista DO/ Sensitive Vessels",
+      "Watch IC Console",
+      "STW (TU)"
+    ],
+    "offset": 0
+  },
+  {
+    "id": "chew.hui.pin.terry",
+    "name": "chew.hui.pin.terry",
+    "competencies": [
+      "East Control",
+      "West Control",
+      "Keppel",
+      "Cruisebay",
+      "VTIS East",
+      "VTIS West",
+      "VTIS Central",
+      "Sembawang Control",
+      "Jurong Control",
+      "Pasir Panjang Control",
+      "Sembawang MTC",
+      "Pasir Panjang MTC",
+      "VTIS MTC"
+    ],
+    "offset": 0
+  },
+  {
+    "id": "chew.kim.siong.brandon",
+    "name": "chew.kim.siong.brandon",
+    "competencies": [
+      "East Control",
+      "West Control",
+      "Keppel",
+      "Cruisebay",
+      "VTIS East",
+      "VTIS West",
+      "VTIS Central",
+      "Sembawang Control",
+      "Jurong Control",
+      "Pasir Panjang Control",
+      "Sembawang MTC",
+      "Pasir Panjang MTC",
+      "VTIS MTC",
+      "PSU",
+      "GMDSS",
+      "STW (PB)"
+    ],
+    "offset": 0
+  },
+  {
+    "id": "chin.teck.boon",
+    "name": "chin.teck.boon",
+    "competencies": [
+      "East Control",
+      "West Control",
+      "Cruisebay",
+      "VTIS East",
+      "VTIS West",
+      "VTIS Central",
+      "Jurong Control",
+      "Pasir Panjang Control",
+      "PSU"
+    ],
+    "offset": 0
+  },
+  {
+    "id": "chua.bing.en",
+    "name": "chua.bing.en",
+    "competencies": [
+      "East Control",
+      "West Control",
+      "VTIS East",
+      "VTIS West"
+    ],
+    "offset": 0
+  },
+  {
+    "id": "chua.hong.hee.steven",
+    "name": "chua.hong.hee.steven",
+    "competencies": [
+      "STW (PB)",
+      "Vista DO/ Sensitive Vessels",
+      "Changi DO",
+      "Watch IC Console"
+    ],
+    "offset": 0
+  },
+  {
+    "id": "danish.irfan",
+    "name": "danish.irfan",
+    "competencies": [
+      "East Control",
+      "West Control"
+    ],
+    "offset": 0
+  },
+  {
+    "id": "du.laixing",
+    "name": "du.laixing",
+    "competencies": [
+      "STW (PB)",
+      "Vista DO/ Sensitive Vessels",
+      "Changi DO",
+      "STW (TU)"
+    ],
+    "offset": 0
+  },
+  {
+    "id": "farah.farhana.bte.sheikh.muhammad",
+    "name": "farah.farhana.bte.sheikh.muhammad",
+    "competencies": [
+      "East Control",
+      "West Control",
+      "VTIS East",
+      "VTIS West"
+    ],
+    "offset": 0
+  },
+  {
+    "id": "gee.soo.hong",
+    "name": "gee.soo.hong",
+    "competencies": [
+      "East Control",
+      "West Control",
+      "Keppel",
+      "Cruisebay",
+      "VTIS East",
+      "VTIS West",
+      "VTIS Central",
+      "Sembawang Control",
+      "Jurong Control",
+      "Pasir Panjang Control",
+      "Sembawang MTC",
+      "Pasir Panjang MTC",
+      "VTIS MTC"
+    ],
+    "offset": 0
+  },
+  {
+    "id": "gunaselan.s/o.muthusamy",
+    "name": "gunaselan.s/o.muthusamy",
+    "competencies": [
+      "East Control",
+      "West Control",
+      "Cruisebay",
+      "VTIS East",
+      "VTIS West",
+      "VTIS Central",
+      "Sembawang Control",
+      "Jurong Control",
+      "Pasir Panjang Control",
+      "Sembawang MTC",
+      "Pasir Panjang MTC"
+    ],
+    "offset": 0
+  },
+  {
+    "id": "gwee.chwee.kim.loewienstien",
+    "name": "gwee.chwee.kim.loewienstien",
+    "competencies": [
+      "East Control",
+      "Keppel",
+      "Cruisebay",
+      "Sembawang Control",
+      "GMDSS",
+      "STW (PB)",
+      "Vista DO/ Sensitive Vessels",
+      "Changi DO",
+      "Watch IC Console"
+    ],
+    "offset": 0
+  },
+  {
+    "id": "hadi.raiyan.bin.johan",
+    "name": "hadi.raiyan.bin.johan",
+    "competencies": [
+      "East Control",
+      "West Control",
+      "VTIS East",
+      "VTIS West"
+    ],
+    "offset": 0
+  },
+  {
+    "id": "hafina.marlinda.binte.aman",
+    "name": "hafina.marlinda.binte.aman",
+    "competencies": [
+      "East Control",
+      "West Control",
+      "VTIS East",
+      "VTIS West",
+      "Sembawang Control",
+      "Jurong Control",
+      "Pasir Panjang Control"
+    ],
+    "offset": 0
+  },
+  {
+    "id": "hafizah.binte.abdul.rahman",
+    "name": "hafizah.binte.abdul.rahman",
+    "competencies": [
+      "East Control",
+      "West Control",
+      "Keppel",
+      "Cruisebay",
+      "VTIS East",
+      "VTIS West",
+      "VTIS Central",
+      "VTIS MTC",
+      "PSU",
+      "GMDSS",
+      "STW (PB)"
+    ],
+    "offset": 0
+  },
+  {
+    "id": "hafizah.binte.razali",
+    "name": "hafizah.binte.razali",
+    "competencies": [
+      "East Control",
+      "West Control",
+      "Keppel",
+      "Cruisebay",
+      "VTIS East",
+      "VTIS West",
+      "VTIS Central",
+      "Sembawang Control",
+      "Jurong Control",
+      "Pasir Panjang Control",
+      "Sembawang MTC",
+      "Pasir Panjang MTC",
+      "VTIS MTC"
+    ],
+    "offset": 0
+  },
+  {
+    "id": "hairul.hafis.bin.mohamed",
+    "name": "hairul.hafis.bin.mohamed",
+    "competencies": [
+      "East Control",
+      "West Control",
+      "Keppel",
+      "Cruisebay",
+      "Sembawang Control",
+      "Jurong Control",
+      "Pasir Panjang Control"
+    ],
+    "offset": 0
+  },
+  {
+    "id": "harad.fadillah.bin.abdul.gani",
+    "name": "harad.fadillah.bin.abdul.gani",
+    "competencies": [
+      "GMDSS",
+      "Vista DO/ Sensitive Vessels",
+      "Watch IC Console"
+    ],
+    "offset": 0
+  },
+  {
+    "id": "hazlizam.bin.fuad",
+    "name": "hazlizam.bin.fuad",
+    "competencies": [
+      "East Control",
+      "West Control",
+      "Cruisebay",
+      "VTIS East",
+      "VTIS West",
+      "VTIS Central",
+      "Sembawang Control",
+      "Jurong Control",
+      "Pasir Panjang Control",
+      "Sembawang MTC",
+      "Pasir Panjang MTC"
+    ],
+    "offset": 0
+  },
+  {
+    "id": "hong.heng.loong.eugene",
+    "name": "hong.heng.loong.eugene",
+    "competencies": [
+      "STW (PB)",
+      "Vista DO/ Sensitive Vessels",
+      "Changi DO",
+      "Watch IC Console",
+      "STW (TU)"
+    ],
+    "offset": 0
+  },
+  {
+    "id": "irfaan.bin.muhamud.sidhik",
+    "name": "irfaan.bin.muhamud.sidhik",
+    "competencies": [
+      "East Control",
+      "West Control"
+    ],
+    "offset": 0
+  },
+  {
+    "id": "iskandar.bin.hassan",
+    "name": "iskandar.bin.hassan",
+    "competencies": [
+      "Vista DO/ Sensitive Vessels",
+      "Changi DO"
+    ],
+    "offset": 0
+  },
+  {
+    "id": "iskandar.bin.zaine",
+    "name": "iskandar.bin.zaine",
+    "competencies": [
+      "East Control",
+      "West Control",
+      "Keppel",
+      "Cruisebay",
+      "VTIS East",
+      "VTIS West",
+      "VTIS Central",
+      "Sembawang Control",
+      "Jurong Control",
+      "Pasir Panjang Control",
+      "Sembawang MTC",
+      "Pasir Panjang MTC"
+    ],
+    "offset": 0
+  },
+  {
+    "id": "iskandar.zulkarnain.bin.azilah",
+    "name": "iskandar.zulkarnain.bin.azilah",
+    "competencies": [
+      "East Control",
+      "West Control",
+      "Keppel",
+      "Cruisebay",
+      "VTIS East",
+      "VTIS West",
+      "VTIS Central",
+      "Sembawang Control",
+      "Jurong Control",
+      "Pasir Panjang Control",
+      "Sembawang MTC",
+      "Pasir Panjang MTC"
+    ],
+    "offset": 0
+  },
+  {
+    "id": "ismail.dadula-solam",
+    "name": "ismail.dadula-solam",
+    "competencies": [
+      "East Control",
+      "West Control",
+      "VTIS East",
+      "VTIS West"
+    ],
+    "offset": 0
+  },
+  {
+    "id": "izwan.bin.omar",
+    "name": "izwan.bin.omar",
+    "competencies": [
+      "East Control",
+      "West Control",
+      "Keppel",
+      "Cruisebay",
+      "VTIS East",
+      "VTIS West",
+      "Sembawang Control",
+      "Jurong Control",
+      "Pasir Panjang Control"
+    ],
+    "offset": 0
+  },
+  {
+    "id": "johanis.bin.busari",
+    "name": "johanis.bin.busari",
+    "competencies": [
+      "East Control",
+      "West Control",
+      "Keppel",
+      "Cruisebay",
+      "VTIS East",
+      "VTIS West",
+      "VTIS Central",
+      "Jurong Control",
+      "Pasir Panjang Control",
+      "Pasir Panjang MTC",
+      "VTIS MTC"
+    ],
+    "offset": 0
+  },
+  {
+    "id": "jude.christopher",
+    "name": "jude.christopher",
+    "competencies": [
+      "East Control",
+      "West Control",
+      "Keppel",
+      "Cruisebay",
+      "VTIS East",
+      "VTIS West",
+      "Sembawang Control",
+      "Jurong Control",
+      "Pasir Panjang Control"
+    ],
+    "offset": 0
+  },
+  {
+    "id": "khairil.anuar.bin.mohd.haron",
+    "name": "khairil.anuar.bin.mohd.haron",
+    "competencies": [
+      "East Control",
+      "West Control",
+      "Cruisebay",
+      "VTIS East",
+      "VTIS West",
+      "VTIS Central",
+      "Sembawang Control",
+      "Jurong Control",
+      "Pasir Panjang Control",
+      "Sembawang MTC",
+      "Pasir Panjang MTC",
+      "VTIS MTC",
+      "PSU",
+      "GMDSS"
+    ],
+    "offset": 0
+  },
+  {
+    "id": "kishovaren.s/o.rajamanickam",
+    "name": "kishovaren.s/o.rajamanickam",
+    "competencies": [
+      "East Control",
+      "West Control",
+      "Cruisebay",
+      "VTIS East",
+      "VTIS West",
+      "Jurong Control",
+      "Pasir Panjang Control"
+    ],
+    "offset": 0
+  },
+  {
+    "id": "koh.boon.wee",
+    "name": "koh.boon.wee",
+    "competencies": [
+      "East Control",
+      "West Control",
+      "Keppel",
+      "Cruisebay",
+      "VTIS East",
+      "VTIS West",
+      "VTIS Central",
+      "VTIS MTC",
+      "PSU",
+      "STW (PB)",
+      "Vista DO/ Sensitive Vessels"
+    ],
+    "offset": 0
+  },
+  {
+    "id": "lee.guo.ying.kenny",
+    "name": "lee.guo.ying.kenny",
+    "competencies": [
+      "East Control",
+      "West Control",
+      "Cruisebay",
+      "VTIS East",
+      "VTIS West",
+      "VTIS Central",
+      "Sembawang Control",
+      "Jurong Control",
+      "Pasir Panjang Control"
+    ],
+    "offset": 0
+  },
+  {
+    "id": "lee.kia.hui.isaac",
+    "name": "lee.kia.hui.isaac",
+    "competencies": [
+      "East Control",
+      "West Control",
+      "Keppel",
+      "Cruisebay",
+      "VTIS East",
+      "VTIS West",
+      "VTIS Central",
+      "Sembawang Control",
+      "Jurong Control",
+      "Pasir Panjang Control"
+    ],
+    "offset": 0
+  },
+  {
+    "id": "liew.wei.hong.christopher",
+    "name": "liew.wei.hong.christopher",
+    "competencies": [
+      "East Control",
+      "West Control",
+      "Keppel",
+      "Cruisebay",
+      "VTIS East",
+      "VTIS West",
+      "VTIS Central",
+      "VTIS MTC",
+      "GMDSS"
+    ],
+    "offset": 0
+  },
+  {
+    "id": "lim.chu.ying.vanessa.",
+    "name": "lim.chu.ying.vanessa.",
+    "competencies": [
+      "East Control",
+      "West Control",
+      "Keppel",
+      "Cruisebay",
+      "VTIS East",
+      "VTIS West",
+      "VTIS Central",
+      "Sembawang Control",
+      "Jurong Control",
+      "Pasir Panjang Control",
+      "Sembawang MTC",
+      "Pasir Panjang MTC"
+    ],
+    "offset": 0
+  },
+  {
+    "id": "lim.eng.kok",
+    "name": "lim.eng.kok",
+    "competencies": [
+      "East Control",
+      "West Control",
+      "Keppel",
+      "Cruisebay",
+      "VTIS East",
+      "VTIS West",
+      "VTIS Central",
+      "VTIS MTC",
+      "PSU",
+      "GMDSS",
+      "STW (PB)"
+    ],
+    "offset": 0
+  },
+  {
+    "id": "lim.jian.hong.henry",
+    "name": "lim.jian.hong.henry",
+    "competencies": [
+      "STW (PB)",
+      "Vista DO/ Sensitive Vessels",
+      "Changi DO",
+      "Watch IC Console",
+      "STW (TU)"
+    ],
+    "offset": 0
+  },
+  {
+    "id": "lim.khok.cheng",
+    "name": "lim.khok.cheng",
+    "competencies": [
+      "STW (PB)",
+      "Vista DO/ Sensitive Vessels",
+      "Watch IC Console",
+      "STW (TU)"
+    ],
+    "offset": 0
+  },
+  {
+    "id": "lim.man.jia",
+    "name": "lim.man.jia",
+    "competencies": [
+      "East Control",
+      "West Control",
+      "Cruisebay",
+      "VTIS East",
+      "VTIS West",
+      "VTIS Central",
+      "Sembawang Control",
+      "Jurong Control",
+      "Pasir Panjang Control",
+      "Sembawang MTC",
+      "Pasir Panjang MTC"
+    ],
+    "offset": 0
+  },
+  {
+    "id": "lim.yue.atrina",
+    "name": "lim.yue.atrina",
+    "competencies": [
+      "East Control",
+      "West Control",
+      "Keppel",
+      "Cruisebay",
+      "VTIS East",
+      "VTIS West",
+      "VTIS Central",
+      "Sembawang Control",
+      "Jurong Control",
+      "Pasir Panjang Control",
+      "Sembawang MTC"
+    ],
+    "offset": 0
+  },
+  {
+    "id": "linda.alvina.d/o.kalimuthu",
+    "name": "linda.alvina.d/o.kalimuthu",
+    "competencies": [
+      "East Control",
+      "West Control",
+      "Cruisebay",
+      "VTIS East",
+      "VTIS West",
+      "VTIS Central",
+      "Sembawang Control",
+      "PSU"
+    ],
+    "offset": 0
+  },
+  {
+    "id": "loh.wen.liang.albert",
+    "name": "loh.wen.liang.albert",
+    "competencies": [
+      "East Control",
+      "West Control",
+      "VTIS East",
+      "VTIS West",
+      "Jurong Control",
+      "Pasir Panjang Control"
+    ],
+    "offset": 0
+  },
+  {
+    "id": "maizaitul.binte.daud",
+    "name": "maizaitul.binte.daud",
+    "competencies": [
+      "East Control",
+      "West Control",
+      "Keppel",
+      "Cruisebay",
+      "VTIS East",
+      "VTIS West",
+      "VTIS Central",
+      "Jurong Control",
+      "Pasir Panjang Control"
+    ],
+    "offset": 0
+  },
+  {
+    "id": "mak.kah.wai.kelvin",
+    "name": "mak.kah.wai.kelvin",
+    "competencies": [
+      "East Control",
+      "West Control"
+    ],
+    "offset": 0
+  },
+  {
+    "id": "md.shahid.amin",
+    "name": "md.shahid.amin",
+    "competencies": [
+      "STW (PB)",
+      "Vista DO/ Sensitive Vessels",
+      "Changi DO",
+      "Watch IC Console"
+    ],
+    "offset": 0
+  },
+  {
+    "id": "miao.yi",
+    "name": "miao.yi",
+    "competencies": [
+      "STW (PB)",
+      "Vista DO/ Sensitive Vessels",
+      "Watch IC Console",
+      "STW (TU)"
+    ],
+    "offset": 0
+  },
+  {
+    "id": "moh.dwiky.rizaldi",
+    "name": "moh.dwiky.rizaldi",
+    "competencies": [
+      "East Control",
+      "West Control",
+      "VTIS East",
+      "VTIS West"
+    ],
+    "offset": 0
+  },
+  {
+    "id": "mohamad.rozaime.bin.shaher",
+    "name": "mohamad.rozaime.bin.shaher",
+    "competencies": [
+      "East Control",
+      "West Control",
+      "Keppel",
+      "Cruisebay",
+      "VTIS East",
+      "VTIS West",
+      "VTIS Central",
+      "Sembawang Control",
+      "Jurong Control",
+      "Pasir Panjang Control"
+    ],
+    "offset": 0
+  },
+  {
+    "id": "mohamad.shareen.bin.jaini",
+    "name": "mohamad.shareen.bin.jaini",
+    "competencies": [
+      "East Control",
+      "West Control",
+      "Keppel",
+      "Cruisebay",
+      "VTIS East",
+      "VTIS West",
+      "VTIS Central",
+      "Sembawang Control",
+      "Jurong Control",
+      "Pasir Panjang Control"
+    ],
+    "offset": 0
+  },
+  {
+    "id": "mohamed.hafeez.bin.aziz",
+    "name": "mohamed.hafeez.bin.aziz",
+    "competencies": [
+      "East Control",
+      "West Control",
+      "Keppel",
+      "Cruisebay",
+      "VTIS East",
+      "VTIS West",
+      "VTIS Central",
+      "Sembawang Control",
+      "Jurong Control",
+      "Pasir Panjang Control",
+      "Sembawang MTC",
+      "Pasir Panjang MTC"
+    ],
+    "offset": 0
+  },
+  {
+    "id": "mohamed.hanafie.bin.palal",
+    "name": "mohamed.hanafie.bin.palal",
+    "competencies": [
+      "East Control",
+      "West Control",
+      "Keppel",
+      "Cruisebay",
+      "VTIS East",
+      "VTIS West",
+      "VTIS Central",
+      "Sembawang Control",
+      "VTIS MTC",
+      "PSU",
+      "GMDSS",
+      "STW (PB)",
+      "Vista DO/ Sensitive Vessels"
+    ],
+    "offset": 0
+  },
+  {
+    "id": "mohamed.ridzuwan.bin.mohd.jadi",
+    "name": "mohamed.ridzuwan.bin.mohd.jadi",
+    "competencies": [
+      "East Control",
+      "West Control",
+      "Keppel",
+      "Cruisebay",
+      "VTIS East",
+      "VTIS West",
+      "VTIS Central",
+      "Sembawang Control",
+      "Jurong Control",
+      "Pasir Panjang Control",
+      "Sembawang MTC",
+      "Pasir Panjang MTC",
+      "VTIS MTC",
+      "PSU",
+      "STW (PB)"
+    ],
+    "offset": 0
+  },
+  {
+    "id": "mohamed.sajid.bin.mohamed.ghaus",
+    "name": "mohamed.sajid.bin.mohamed.ghaus",
+    "competencies": [
+      "East Control",
+      "West Control",
+      "Cruisebay",
+      "VTIS East",
+      "VTIS West",
+      "VTIS Central",
+      "Sembawang Control",
+      "Jurong Control",
+      "Pasir Panjang Control",
+      "Sembawang MTC",
+      "Pasir Panjang MTC",
+      "PSU"
+    ],
+    "offset": 0
+  },
+  {
+    "id": "mohammad.fadhli.bin.kamal",
+    "name": "mohammad.fadhli.bin.kamal",
+    "competencies": [
+      "East Control",
+      "West Control",
+      "Cruisebay",
+      "VTIS East",
+      "VTIS West",
+      "VTIS Central",
+      "Sembawang Control",
+      "Jurong Control",
+      "Pasir Panjang Control",
+      "Sembawang MTC",
+      "Pasir Panjang MTC"
+    ],
+    "offset": 0
+  },
+  {
+    "id": "mohammad.jamal.bin.mohd.janbari",
+    "name": "mohammad.jamal.bin.mohd.janbari",
+    "competencies": [
+      "East Control",
+      "West Control",
+      "Keppel",
+      "Cruisebay",
+      "VTIS East",
+      "VTIS West",
+      "VTIS Central",
+      "Sembawang Control",
+      "Jurong Control",
+      "Pasir Panjang Control",
+      "Sembawang MTC",
+      "Pasir Panjang MTC",
+      "VTIS MTC",
+      "PSU",
+      "GMDSS",
+      "STW (PB)"
+    ],
+    "offset": 0
+  },
+  {
+    "id": "mohammad.redawi.bin.mohd.jaffar",
+    "name": "mohammad.redawi.bin.mohd.jaffar",
+    "competencies": [
+      "East Control",
+      "West Control",
+      "Cruisebay",
+      "VTIS East",
+      "VTIS West",
+      "VTIS Central",
+      "Jurong Control",
+      "Pasir Panjang Control",
+      "PSU"
+    ],
+    "offset": 0
+  },
+  {
+    "id": "mohammad.rizkurniawan.bin.mohd.rusli",
+    "name": "mohammad.rizkurniawan.bin.mohd.rusli",
+    "competencies": [
+      "East Control",
+      "West Control",
+      "VTIS East",
+      "VTIS West",
+      "Jurong Control",
+      "Pasir Panjang Control"
+    ],
+    "offset": 0
+  },
+  {
+    "id": "mohammed.arshad.bin.mahmood",
+    "name": "mohammed.arshad.bin.mahmood",
+    "competencies": [
+      "East Control",
+      "West Control",
+      "Keppel",
+      "Cruisebay",
+      "VTIS East",
+      "VTIS West",
+      "VTIS Central",
+      "Sembawang Control",
+      "Jurong Control",
+      "Pasir Panjang Control",
+      "Sembawang MTC",
+      "Pasir Panjang MTC"
+    ],
+    "offset": 0
+  },
+  {
+    "id": "muhammad.amsyar.b.mohammed.moktar",
+    "name": "muhammad.amsyar.b.mohammed.moktar",
+    "competencies": [
+      "East Control",
+      "West Control",
+      "VTIS East",
+      "VTIS West"
+    ],
+    "offset": 0
+  },
+  {
+    "id": "muhammad.arfizan.bin.arman",
+    "name": "muhammad.arfizan.bin.arman",
+    "competencies": [
+      "East Control",
+      "West Control",
+      "VTIS East",
+      "VTIS West",
+      "Sembawang Control",
+      "Jurong Control",
+      "Pasir Panjang Control"
+    ],
+    "offset": 0
+  },
+  {
+    "id": "muhammad.asyraf.bin.johari",
+    "name": "muhammad.asyraf.bin.johari",
+    "competencies": [
+      "East Control",
+      "West Control",
+      "Keppel",
+      "Cruisebay",
+      "VTIS East",
+      "VTIS West",
+      "VTIS Central",
+      "Sembawang Control",
+      "Jurong Control",
+      "Pasir Panjang Control"
+    ],
+    "offset": 0
+  },
+  {
+    "id": "muhammad.elfie.bin.sain",
+    "name": "muhammad.elfie.bin.sain",
+    "competencies": [
+      "East Control",
+      "West Control",
+      "Keppel",
+      "Cruisebay",
+      "VTIS East",
+      "VTIS West",
+      "Sembawang Control",
+      "Jurong Control",
+      "Pasir Panjang Control"
+    ],
+    "offset": 0
+  },
+  {
+    "id": "muhammad.faizal.bin.ali",
+    "name": "muhammad.faizal.bin.ali",
+    "competencies": [
+      "East Control",
+      "West Control",
+      "Cruisebay",
+      "VTIS East",
+      "VTIS West",
+      "VTIS Central",
+      "Sembawang Control",
+      "Jurong Control",
+      "Pasir Panjang Control"
+    ],
+    "offset": 0
+  },
+  {
+    "id": "muhammad.fazli",
+    "name": "muhammad.fazli",
+    "competencies": [
+      "East Control",
+      "West Control"
+    ],
+    "offset": 0
+  },
+  {
+    "id": "muhammad.hamizan.bin.mohamad.sabar",
+    "name": "muhammad.hamizan.bin.mohamad.sabar",
+    "competencies": [
+      "East Control",
+      "West Control",
+      "Keppel",
+      "Cruisebay",
+      "VTIS East",
+      "VTIS West",
+      "VTIS Central",
+      "Sembawang Control",
+      "Jurong Control",
+      "Pasir Panjang Control",
+      "Sembawang MTC",
+      "Pasir Panjang MTC",
+      "VTIS MTC"
+    ],
+    "offset": 0
+  },
+  {
+    "id": "muhammad.khidhir.b.nahrawi",
+    "name": "muhammad.khidhir.b.nahrawi",
+    "competencies": [
+      "East Control",
+      "West Control",
+      "VTIS East",
+      "VTIS West"
+    ],
+    "offset": 0
+  },
+  {
+    "id": "muhammad.muhaimin.bin.mohammed.jufri",
+    "name": "muhammad.muhaimin.bin.mohammed.jufri",
+    "competencies": [
+      "East Control",
+      "West Control",
+      "Keppel",
+      "Cruisebay",
+      "VTIS East",
+      "VTIS West",
+      "VTIS Central",
+      "Sembawang Control",
+      "Jurong Control",
+      "Pasir Panjang Control"
+    ],
+    "offset": 0
+  },
+  {
+    "id": "muhammad.nur.hakim.bin.mazlan",
+    "name": "muhammad.nur.hakim.bin.mazlan",
+    "competencies": [
+      "East Control",
+      "West Control",
+      "VTIS East",
+      "VTIS West",
+      "Jurong Control",
+      "Pasir Panjang Control"
+    ],
+    "offset": 0
+  },
+  {
+    "id": "muhammad.nursyam.firdaus.bin.ahmad",
+    "name": "muhammad.nursyam.firdaus.bin.ahmad",
+    "competencies": [
+      "East Control",
+      "West Control",
+      "Keppel",
+      "Cruisebay",
+      "VTIS East",
+      "VTIS West",
+      "VTIS Central",
+      "Sembawang Control",
+      "Jurong Control",
+      "Pasir Panjang Control"
+    ],
+    "offset": 0
+  },
+  {
+    "id": "muhammad.ridhuan.bin.ariffin",
+    "name": "muhammad.ridhuan.bin.ariffin",
+    "competencies": [
+      "East Control",
+      "West Control",
+      "Cruisebay",
+      "VTIS East",
+      "VTIS West",
+      "VTIS Central",
+      "Sembawang Control",
+      "Jurong Control",
+      "Pasir Panjang Control",
+      "Sembawang MTC",
+      "Pasir Panjang MTC"
+    ],
+    "offset": 0
+  },
+  {
+    "id": "muhammad.saifuddin.bin.abdul.khalid",
+    "name": "muhammad.saifuddin.bin.abdul.khalid",
+    "competencies": [
+      "East Control",
+      "West Control",
+      "VTIS East",
+      "VTIS West",
+      "Jurong Control",
+      "Pasir Panjang Control"
+    ],
+    "offset": 0
+  },
+  {
+    "id": "muhammad.shakir.bin.rahim",
+    "name": "muhammad.shakir.bin.rahim",
+    "competencies": [
+      "East Control",
+      "West Control",
+      "VTIS East",
+      "VTIS West",
+      "Sembawang Control"
+    ],
+    "offset": 0
+  },
+  {
+    "id": "muhammad.shukor.bin.noordin",
+    "name": "muhammad.shukor.bin.noordin",
+    "competencies": [
+      "East Control",
+      "West Control",
+      "Keppel",
+      "Cruisebay",
+      "VTIS East",
+      "VTIS West",
+      "VTIS Central",
+      "Sembawang Control",
+      "Jurong Control",
+      "Pasir Panjang Control",
+      "Sembawang MTC",
+      "Pasir Panjang MTC",
+      "VTIS MTC",
+      "STW (PB)"
+    ],
+    "offset": 0
+  },
+  {
+    "id": "muhammad.syahmi.bin.zakaria",
+    "name": "muhammad.syahmi.bin.zakaria",
+    "competencies": [
+      "East Control",
+      "West Control",
+      "VTIS East",
+      "VTIS West",
+      "Jurong Control",
+      "Pasir Panjang Control"
+    ],
+    "offset": 0
+  },
+  {
+    "id": "muhammad.syazwan.bin.suhaimi",
+    "name": "muhammad.syazwan.bin.suhaimi",
+    "competencies": [
+      "East Control",
+      "West Control",
+      "Keppel",
+      "Cruisebay",
+      "VTIS East",
+      "VTIS West",
+      "VTIS Central",
+      "Sembawang Control",
+      "Jurong Control",
+      "Pasir Panjang Control"
+    ],
+    "offset": 0
+  },
+  {
+    "id": "muhammad.taufiq.bin.abd.rahman",
+    "name": "muhammad.taufiq.bin.abd.rahman",
+    "competencies": [
+      "East Control",
+      "West Control",
+      "Keppel",
+      "Cruisebay",
+      "VTIS East",
+      "VTIS West",
+      "VTIS Central",
+      "Sembawang Control",
+      "Jurong Control",
+      "Pasir Panjang Control"
+    ],
+    "offset": 0
+  },
+  {
+    "id": "muhammad.taufiq.mohamed.salleh",
+    "name": "muhammad.taufiq.mohamed.salleh",
+    "competencies": [
+      "East Control",
+      "West Control",
+      "Cruisebay",
+      "VTIS East",
+      "VTIS West",
+      "VTIS Central",
+      "Sembawang Control",
+      "Jurong Control",
+      "Pasir Panjang Control"
+    ],
+    "offset": 0
+  },
+  {
+    "id": "muhammad.yunus.bin.ibrahim",
+    "name": "muhammad.yunus.bin.ibrahim",
+    "competencies": [
+      "East Control",
+      "West Control",
+      "VTIS East",
+      "VTIS West"
+    ],
+    "offset": 0
+  },
+  {
+    "id": "muhd.kamarularifin.hassan",
+    "name": "muhd.kamarularifin.hassan",
+    "competencies": [
+      "East Control",
+      "West Control",
+      "VTIS East",
+      "VTIS West"
+    ],
+    "offset": 0
+  },
+  {
+    "id": "muhd.syafaat.hamin",
+    "name": "muhd.syafaat.hamin",
+    "competencies": [
+      "East Control",
+      "West Control",
+      "VTIS East",
+      "VTIS West"
+    ],
+    "offset": 0
+  },
+  {
+    "id": "nasser.bin.ismail",
+    "name": "nasser.bin.ismail",
+    "competencies": [
+      "STW (PB)",
+      "Vista DO/ Sensitive Vessels",
+      "Changi DO",
+      "Watch IC Console",
+      "STW (TU)"
+    ],
+    "offset": 0
+  },
+  {
+    "id": "ng.kah.siong",
+    "name": "ng.kah.siong",
+    "competencies": [
+      "East Control",
+      "West Control",
+      "Keppel",
+      "Cruisebay",
+      "VTIS East",
+      "VTIS West",
+      "VTIS Central",
+      "Sembawang Control",
+      "Jurong Control",
+      "Pasir Panjang Control",
+      "Sembawang MTC",
+      "Pasir Panjang MTC",
+      "VTIS MTC",
+      "GMDSS",
+      "STW (PB)"
+    ],
+    "offset": 0
+  },
+  {
+    "id": "ng.meei.long.eric",
+    "name": "ng.meei.long.eric",
+    "competencies": [
+      "East Control",
+      "West Control",
+      "Cruisebay",
+      "VTIS East",
+      "VTIS West",
+      "Sembawang Control",
+      "Jurong Control",
+      "Pasir Panjang Control"
+    ],
+    "offset": 0
+  },
+  {
+    "id": "ng.tian.sern.shawn",
+    "name": "ng.tian.sern.shawn",
+    "competencies": [
+      "East Control",
+      "West Control",
+      "Cruisebay",
+      "VTIS East",
+      "VTIS West",
+      "Jurong Control",
+      "Pasir Panjang Control"
+    ],
+    "offset": 0
+  },
+  {
+    "id": "noor.azahar.bin.ismail",
+    "name": "noor.azahar.bin.ismail",
+    "competencies": [
+      "East Control",
+      "West Control",
+      "Keppel",
+      "Cruisebay",
+      "VTIS East",
+      "VTIS West",
+      "Sembawang Control",
+      "Jurong Control",
+      "Pasir Panjang Control"
+    ],
+    "offset": 0
+  },
+  {
+    "id": "nurul.azlan.bin.md.rais",
+    "name": "nurul.azlan.bin.md.rais",
+    "competencies": [
+      "East Control",
+      "West Control",
+      "Cruisebay",
+      "VTIS East",
+      "VTIS West",
+      "VTIS Central",
+      "Sembawang Control",
+      "Jurong Control",
+      "Pasir Panjang Control",
+      "Sembawang MTC",
+      "Pasir Panjang MTC",
+      "VTIS MTC",
+      "PSU"
+    ],
+    "offset": 0
+  },
+  {
+    "id": "nurul.basirah.binte.mansor",
+    "name": "nurul.basirah.binte.mansor",
+    "competencies": [
+      "East Control",
+      "West Control",
+      "Keppel",
+      "Cruisebay",
+      "VTIS East",
+      "VTIS West",
+      "VTIS Central",
+      "Sembawang Control",
+      "Jurong Control",
+      "Pasir Panjang Control"
+    ],
+    "offset": 0
+  },
+  {
+    "id": "ong.poh.sheng.wilfred",
+    "name": "ong.poh.sheng.wilfred",
+    "competencies": [
+      "East Control",
+      "West Control",
+      "Keppel",
+      "Cruisebay",
+      "VTIS East",
+      "VTIS West",
+      "VTIS Central",
+      "Sembawang Control",
+      "Sembawang MTC",
+      "PSU"
+    ],
+    "offset": 0
+  },
+  {
+    "id": "ow.yong.ka.yin",
+    "name": "ow.yong.ka.yin",
+    "competencies": [
+      "East Control",
+      "West Control",
+      "Cruisebay",
+      "VTIS East",
+      "VTIS West",
+      "VTIS Central",
+      "Sembawang Control",
+      "Jurong Control",
+      "Pasir Panjang Control",
+      "Pasir Panjang MTC",
+      "GMDSS"
+    ],
+    "offset": 0
+  },
+  {
+    "id": "ramakrishnan.aravazhi",
+    "name": "ramakrishnan.aravazhi",
+    "competencies": [
+      "East Control",
+      "West Control",
+      "Cruisebay",
+      "VTIS East",
+      "VTIS West",
+      "STW (PB)",
+      "Vista DO/ Sensitive Vessels",
+      "Watch IC Console",
+      "STW (TU)"
+    ],
+    "offset": 0
+  },
+  {
+    "id": "ren.jianzhong",
+    "name": "ren.jianzhong",
+    "competencies": [
+      "STW (PB)",
+      "Vista DO/ Sensitive Vessels",
+      "Changi DO",
+      "Watch IC Console",
+      "STW (TU)"
+    ],
+    "offset": 0
+  },
+  {
+    "id": "saharudin.bin.mamood",
+    "name": "saharudin.bin.mamood",
+    "competencies": [
+      "Vista DO/ Sensitive Vessels",
+      "Watch IC Console",
+      "STW (TU)"
+    ],
+    "offset": 0
+  },
+  {
+    "id": "sargunan.s/o.mohandas",
+    "name": "sargunan.s/o.mohandas",
+    "competencies": [
+      "East Control",
+      "West Control",
+      "VTIS East",
+      "VTIS West",
+      "Sembawang Control",
+      "Jurong Control",
+      "Pasir Panjang Control"
+    ],
+    "offset": 0
+  },
+  {
+    "id": "sawal.bin.waren",
+    "name": "sawal.bin.waren",
+    "competencies": [
+      "STW (PB)",
+      "Vista DO/ Sensitive Vessels",
+      "Watch IC Console"
+    ],
+    "offset": 0
+  },
+  {
+    "id": "sharini.bte.sirat",
+    "name": "sharini.bte.sirat",
+    "competencies": [
+      "East Control",
+      "West Control",
+      "Keppel",
+      "Cruisebay",
+      "VTIS East",
+      "VTIS West",
+      "VTIS Central",
+      "Sembawang Control",
+      "Jurong Control",
+      "Pasir Panjang Control",
+      "Sembawang MTC",
+      "Pasir Panjang MTC",
+      "VTIS MTC"
+    ],
+    "offset": 0
+  },
+  {
+    "id": "shazmeen.banu.binte.mohamed.moosa",
+    "name": "shazmeen.banu.binte.mohamed.moosa",
+    "competencies": [
+      "East Control",
+      "West Control",
+      "Keppel",
+      "Cruisebay",
+      "VTIS East",
+      "VTIS West",
+      "VTIS Central",
+      "Jurong Control",
+      "Pasir Panjang Control",
+      "VTIS MTC"
+    ],
+    "offset": 0
+  },
+  {
+    "id": "soh.whee.kok",
+    "name": "soh.whee.kok",
+    "competencies": [
+      "STW (PB)",
+      "Vista DO/ Sensitive Vessels",
+      "Changi DO",
+      "STW (TU)"
+    ],
+    "offset": 0
+  },
+  {
+    "id": "song.en.ming",
+    "name": "song.en.ming",
+    "competencies": [
+      "East Control",
+      "West Control",
+      "VTIS East",
+      "VTIS West"
+    ],
+    "offset": 0
+  },
+  {
+    "id": "suresh.s/o.ramani",
+    "name": "suresh.s/o.ramani",
+    "competencies": [
+      "East Control",
+      "West Control",
+      "Cruisebay",
+      "VTIS East",
+      "VTIS West",
+      "VTIS Central",
+      "Sembawang Control",
+      "Jurong Control",
+      "Pasir Panjang Control"
+    ],
+    "offset": 0
+  },
+  {
+    "id": "syed.muhammad.anwar",
+    "name": "syed.muhammad.anwar",
+    "competencies": [
+      "STW (PB)",
+      "Vista DO/ Sensitive Vessels",
+      "Changi DO",
+      "Watch IC Console"
+    ],
+    "offset": 0
+  },
+  {
+    "id": "syn.keong.leong",
+    "name": "syn.keong.leong",
+    "competencies": [
+      "East Control",
+      "West Control",
+      "Cruisebay",
+      "VTIS East",
+      "VTIS West",
+      "VTIS Central",
+      "Jurong Control",
+      "Pasir Panjang Control",
+      "VTIS MTC",
+      "PSU"
+    ],
+    "offset": 0
+  },
+  {
+    "id": "tan.chee.seng",
+    "name": "tan.chee.seng",
+    "competencies": [
+      "East Control",
+      "West Control",
+      "Keppel",
+      "Cruisebay",
+      "VTIS East",
+      "VTIS West",
+      "VTIS Central",
+      "Sembawang Control",
+      "Jurong Control",
+      "Pasir Panjang Control",
+      "VTIS MTC",
+      "GMDSS"
+    ],
+    "offset": 0
+  },
+  {
+    "id": "tan.kah.choon",
+    "name": "tan.kah.choon",
+    "competencies": [
+      "STW (PB)",
+      "Vista DO/ Sensitive Vessels",
+      "Changi DO",
+      "Watch IC Console"
+    ],
+    "offset": 0
+  },
+  {
+    "id": "tan.lay.ying",
+    "name": "tan.lay.ying",
+    "competencies": [
+      "STW (PB)",
+      "Vista DO/ Sensitive Vessels",
+      "Watch IC Console",
+      "STW (TU)"
+    ],
+    "offset": 0
+  },
+  {
+    "id": "tan.shi.ni.baby",
+    "name": "tan.shi.ni.baby",
+    "competencies": [
+      "STW (PB)",
+      "Vista DO/ Sensitive Vessels",
+      "STW (TU)"
+    ],
+    "offset": 0
+  },
+  {
+    "id": "tan.swee.teck",
+    "name": "tan.swee.teck",
+    "competencies": [
+      "East Control",
+      "West Control",
+      "Keppel",
+      "Cruisebay",
+      "VTIS East",
+      "VTIS West",
+      "VTIS Central",
+      "Sembawang Control",
+      "Jurong Control",
+      "Pasir Panjang Control",
+      "Sembawang MTC",
+      "Pasir Panjang MTC",
+      "VTIS MTC",
+      "GMDSS",
+      "STW (PB)"
+    ],
+    "offset": 0
+  },
+  {
+    "id": "tan.yong.gang",
+    "name": "tan.yong.gang",
+    "competencies": [
+      "East Control",
+      "West Control",
+      "Cruisebay",
+      "VTIS East",
+      "VTIS West",
+      "Sembawang Control",
+      "Jurong Control",
+      "Pasir Panjang Control"
+    ],
+    "offset": 0
+  },
+  {
+    "id": "ten.kumari.d/o.a.balbahadur",
+    "name": "ten.kumari.d/o.a.balbahadur",
+    "competencies": [
+      "East Control",
+      "West Control",
+      "Keppel",
+      "Cruisebay",
+      "VTIS East",
+      "VTIS West",
+      "VTIS Central",
+      "Sembawang Control",
+      "Jurong Control",
+      "Pasir Panjang Control",
+      "Sembawang MTC",
+      "Pasir Panjang MTC",
+      "VTIS MTC",
+      "GMDSS"
+    ],
+    "offset": 0
+  },
+  {
+    "id": "teo.koon.tian.william",
+    "name": "teo.koon.tian.william",
+    "competencies": [
+      "East Control",
+      "West Control",
+      "Keppel",
+      "Cruisebay",
+      "VTIS East",
+      "VTIS West",
+      "VTIS Central",
+      "Sembawang Control",
+      "Jurong Control",
+      "Pasir Panjang Control",
+      "Sembawang MTC",
+      "Pasir Panjang MTC",
+      "VTIS MTC"
+    ],
+    "offset": 0
+  },
+  {
+    "id": "theng.yan.ting.teresa",
+    "name": "theng.yan.ting.teresa",
+    "competencies": [
+      "East Control",
+      "West Control",
+      "Keppel",
+      "Cruisebay",
+      "VTIS East",
+      "VTIS West",
+      "VTIS Central",
+      "Sembawang Control",
+      "Jurong Control",
+      "Pasir Panjang Control",
+      "Sembawang MTC",
+      "Pasir Panjang MTC",
+      "VTIS MTC",
+      "PSU",
+      "STW (PB)"
+    ],
+    "offset": 0
+  },
+  {
+    "id": "wu.sheng",
+    "name": "wu.sheng",
+    "competencies": [
+      "Vista DO/ Sensitive Vessels",
+      "Watch IC Console"
+    ],
+    "offset": 0
+  },
+  {
+    "id": "zhang.guangyou.harold",
+    "name": "zhang.guangyou.harold",
+    "competencies": [
+      "STW (PB)",
+      "Vista DO/ Sensitive Vessels",
+      "STW (TU)"
+    ],
+    "offset": 0
+  },
+  {
+    "id": "zhang.zexu",
+    "name": "zhang.zexu",
+    "competencies": [
+      "STW (PB)",
+      "Vista DO/ Sensitive Vessels",
+      "STW (TU)"
+    ],
+    "offset": 0
+  },
+  {
+    "id": "zhao.xiaocheng",
+    "name": "zhao.xiaocheng",
+    "competencies": [
+      "STW (PB)",
+      "Changi DO"
+    ],
+    "offset": 0
+  },
+  {
+    "id": "abdul.rashid.bin.anwar",
+    "name": "abdul.rashid.bin.anwar",
+    "competencies": [],
+    "offset": 0
+  },
+  {
+    "id": "muhammad.sufian.bin.anuar",
+    "name": "muhammad.sufian.bin.anuar",
+    "competencies": [],
+    "offset": 0
+  },
+  {
+    "id": "zia.ul-ahad.de.souza",
+    "name": "zia.ul-ahad.de.souza",
+    "competencies": [],
+    "offset": 0
+  },
+  {
+    "id": "mohamad.haziq.bin.rahmat",
+    "name": "mohamad.haziq.bin.rahmat",
+    "competencies": [],
+    "offset": 0
+  }
+]

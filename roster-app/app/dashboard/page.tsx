@@ -358,14 +358,14 @@ export default function DashboardPage() {
             <Legend wrapperStyle={{ paddingTop: '10px' }} />
             {(() => {
               const gradeColors = ["#8884d8", "#82ca9d", "#ffc658", "#ff7300", "#0088fe", "#00c49f", "#ffbb28", "#a4de6c", "#d0ed57"];
-              return activeGrades.sort((a,b) => a-b).map(grade => {
+              return activeGrades.slice().sort((a,b) => a-b).map((grade, index) => {
                 return (
                   <Line
-                    key={`grade_${grade}`}
+                    key={`line_grade_${grade}_${index}`}
                     type="monotone"
                     dataKey={`grade_${grade}`}
                     name={`Grade ${grade}`}
-                    stroke={gradeColors[grade - 1]}
+                    stroke={gradeColors[(grade - 1) % gradeColors.length]}
                     activeDot={{ r: 8 }}
                   />
                 );

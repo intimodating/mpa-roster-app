@@ -15,6 +15,7 @@ export default function SimulatePage() {
     const [selectedShiftData, setSelectedShiftData] = useState<any>(null);
     const [viewMode, setViewMode] = useState<'calendar' | 'matrix'>('calendar');
     const [users, setUsers] = useState<any[]>([]);
+    const [userLookup, setUserLookup] = useState<Record<string, { name: string }>>({});
     const [activeStatInfo, setActiveStatInfo] = useState<{ title: string, definition: string, derivation: string } | null>(null);
 
     // Modal state for SimulationMatrixView
@@ -53,6 +54,13 @@ export default function SimulatePage() {
                 const res = await fetch('/api/users/all');
                 const data = await res.json();
                 if (data.success) {
+                    // Create lookup for ALL users
+                    const lookup = data.data.reduce((acc: any, u: any) => {
+                        acc[u.user_id] = { name: u.name };
+                        return acc;
+                    }, {});
+                    setUserLookup(lookup);
+
                     // Stable case-insensitive sort to match Python and guarantee consistent offsets
                     const sortedNonPlanners = data.data
                         .filter((u: any) => u.account_type === 'Non-Planner')
@@ -297,6 +305,7 @@ export default function SimulatePage() {
                 {isViewerModalOpen && selectedShiftData && (
                     <ShiftViewerModal 
                         shiftData={selectedShiftData} 
+                        userLookup={userLookup}
                         onClose={() => setIsViewerModalOpen(false)} 
                     />
                 )}
