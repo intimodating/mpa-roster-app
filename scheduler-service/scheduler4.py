@@ -1,3 +1,4 @@
+#simulate without pending leaves
 import json
 import sys
 import time
@@ -380,5 +381,13 @@ def main(data):
     total_working_slots = sum(shift_capacity.values())
     sys.stderr.write(f"Scheduler4: Total Assignments: {assigned_count}\n")
     sys.stderr.write(f"Scheduler4: Total Reserve Pool Slots: {total_working_slots - assigned_count}\n")
+
+    # If return_offsets is requested, wrap the roster and offsets in a single object
+    if data.get("return_offsets"):
+        return json.dumps({
+            "roster": roster,
+            "offsets": employee_offsets,
+            "objective": solver.ObjectiveValue()
+        })
 
     return json.dumps(roster)

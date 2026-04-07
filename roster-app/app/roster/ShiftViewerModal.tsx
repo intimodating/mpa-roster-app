@@ -67,7 +67,7 @@ const ShiftViewerModal: React.FC<Props> = ({ shiftData, userLookup, onClose }) =
                     <ul style={styles.employeeList}>
                         {normalWorkers.length === 0 ? <li style={styles.employeeItem}>None</li> : sortWorkers(normalWorkers).map(emp => (
                             <li key={emp.user_id} style={styles.employeeItem}>
-                                <span style={styles.workerId}>{userLookup[emp.user_id]?.name || emp.user_id}</span>
+                                <span style={styles.workerId}>{userLookup && userLookup[emp.user_id]?.name || emp.user_id}</span>
                                 {emp.assigned_console && <span style={styles.consoleTag}>{emp.assigned_console}</span>}
                             </li>
                         ))}
@@ -78,7 +78,7 @@ const ShiftViewerModal: React.FC<Props> = ({ shiftData, userLookup, onClose }) =
                     <ul style={styles.employeeList}>
                         {ojtWorkers.length === 0 ? <li style={styles.employeeItem}>None</li> : sortWorkers(ojtWorkers).map(emp => (
                             <li key={emp.user_id} style={{ ...styles.employeeItem, borderLeft: '2px solid #ffc658', paddingLeft: '5px' }}>
-                                <span style={styles.workerId}>{userLookup[emp.user_id]?.name || emp.user_id}</span>
+                                <span style={styles.workerId}>{userLookup && userLookup[emp.user_id]?.name || emp.user_id}</span>
                                 {emp.assigned_console && <span style={styles.consoleTag}>{emp.assigned_console}</span>}
                             </li>
                         ))}
@@ -100,7 +100,7 @@ const ShiftViewerModal: React.FC<Props> = ({ shiftData, userLookup, onClose }) =
                     <div style={styles.leavesContainer}>
                         <h3 style={styles.shiftTitle}>On Leave</h3>
                         <ul style={styles.employeeList}>
-                            {shiftData.leaves.map(leave => <li key={leave.user_id} style={styles.employeeItem}>{userLookup[leave.user_id]?.name || leave.user_id}</li>)}
+                            {shiftData.leaves.map(leave => <li key={leave.user_id} style={styles.employeeItem}>{userLookup && userLookup[leave.user_id]?.name || leave.user_id}</li>)}
                         </ul>
                     </div>
                 )}
