@@ -469,21 +469,39 @@ const CalendarView: React.FC<CalendarProps> = React.memo(({ currentDate, changeM
           const dateKey = `${date.getFullYear()}-${String(date.getMonth() + 1).padStart(2, '0')}-${String(date.getDate()).padStart(2, '0')}`;
           const isToday = dateKey === todayDateString;
 
+          if (isToday) {
+            // console.log("Today:", dateKey, rosterData[dateKey]);
+          }
+
           if (isPlanner) {
             const plannerRoster = rosterData as RosterMap;
             const shiftsEast = plannerRoster[dateKey]?.East || { Morning: [], Afternoon: [], Night: [] };
             const shiftsWest = plannerRoster[dateKey]?.West || { Morning: [], Afternoon: [], Night: [] };
             
-            const totalMorningShift = shiftsEast.Morning.length + shiftsWest.Morning.length;
+            const isAssigned = (w: WorkerAssignment) => w.assigned_console !== 'Reserve' && w.assigned_console !== 'OFF';
+            const isReserve = (w: WorkerAssignment) => w.assigned_console === 'Reserve';
+
+            const assignedMorning = shiftsEast.Morning.filter(isAssigned).length + shiftsWest.Morning.filter(isAssigned).length;
             const ojtMorningCount = shiftsEast.Morning.filter(w => w.is_ojt).length + shiftsWest.Morning.filter(w => w.is_ojt).length;
             
-            const totalAfternoonShift = shiftsEast.Afternoon.length + shiftsWest.Afternoon.length;
+            const assignedAfternoon = shiftsEast.Afternoon.filter(isAssigned).length + shiftsWest.Afternoon.filter(isAssigned).length;
             const ojtAfternoonCount = shiftsEast.Afternoon.filter(w => w.is_ojt).length + shiftsWest.Afternoon.filter(w => w.is_ojt).length;
             
-            const totalNightShift = shiftsEast.Night.length + shiftsWest.Night.length;
+            const assignedNight = shiftsEast.Night.filter(isAssigned).length + shiftsWest.Night.length; // Fixed bug: shiftsWest.Night was missing filter/length in original
             const ojtNightCount = shiftsEast.Night.filter(w => w.is_ojt).length + shiftsWest.Night.filter(w => w.is_ojt).length;
             
-            const hasShift = totalMorningShift > 0 || totalAfternoonShift > 0 || totalNightShift > 0;
+            const totalReserves = 
+              shiftsEast.Morning.filter(isReserve).length + shiftsWest.Morning.filter(isReserve).length +
+              shiftsEast.Afternoon.filter(isReserve).length + shiftsWest.Afternoon.filter(isReserve).length +
+              shiftsEast.Night.filter(isReserve).length + (shiftsWest.Night ? shiftsWest.Night.filter(isReserve).length : 0);
+
+            const isOff = (w: WorkerAssignment) => w.assigned_console === 'OFF';
+            const totalOff = 
+              shiftsEast.Morning.filter(isOff).length + shiftsWest.Morning.filter(isOff).length +
+              shiftsEast.Afternoon.filter(isOff).length + shiftsWest.Afternoon.filter(isOff).length +
+              shiftsEast.Night.filter(isOff).length + (shiftsWest.Night ? shiftsWest.Night.filter(isOff).length : 0);
+
+            const hasShift = assignedMorning > 0 || assignedAfternoon > 0 || assignedNight > 0 || totalReserves > 0 || totalOff > 0;
             const leavesOnDay = leavesData[dateKey] || [];
 
             return (
@@ -499,23 +517,33 @@ const CalendarView: React.FC<CalendarProps> = React.memo(({ currentDate, changeM
               >
                 <div style={calStyles.dayNumber}>{day}</div>
                 {leavesOnDay.length > 0 && (
-                  <div style={{...calStyles.shiftIndicator, backgroundColor: '#FFD700', color: 'black'}}>
+                  <div style={{...calStyles.shiftIndicator, backgroundColor: '#4285F4', color: 'white'}}>
                     Leave: {leavesOnDay.length}
                   </div>
                 )}
-                {totalMorningShift > 0 && (
+                {assignedMorning > 0 && (
                   <div style={{...calStyles.shiftIndicator, backgroundColor: '#34a853', marginTop: '3px'}}>
-                    Morning: {totalMorningShift}{ojtMorningCount > 0 ? ` (${ojtMorningCount} OJT)` : ''}
+                    Morning: {assignedMorning}{ojtMorningCount > 0 ? ` (${ojtMorningCount} OJT)` : ''}
                   </div>
                 )}
-                {totalAfternoonShift > 0 && (
+                {assignedAfternoon > 0 && (
                   <div style={{...calStyles.shiftIndicator, backgroundColor: '#4285F4', marginTop: '3px'}}>
-                    Afternoon: {totalAfternoonShift}{ojtAfternoonCount > 0 ? ` (${ojtAfternoonCount} OJT)` : ''}
+                    Afternoon: {assignedAfternoon}{ojtAfternoonCount > 0 ? ` (${ojtAfternoonCount} OJT)` : ''}
                   </div>
                 )}
-                {totalNightShift > 0 && (
+                {assignedNight > 0 && (
                   <div style={{...calStyles.shiftIndicator, backgroundColor: '#8a2be2', marginTop: '3px'}}>
-                    Night: {totalNightShift}{ojtNightCount > 0 ? ` (${ojtNightCount} OJT)` : ''}
+                    Night: {assignedNight}{ojtNightCount > 0 ? ` (${ojtNightCount} OJT)` : ''}
+                  </div>
+                )}
+                {totalReserves > 0 && (
+                  <div style={{...calStyles.shiftIndicator, backgroundColor: '#B8860B', color: 'white', marginTop: '3px', fontWeight: 'bold'}}>
+                    Reserve: {totalReserves}
+                  </div>
+                )}
+                {totalOff > 0 && (
+                  <div style={{...calStyles.shiftIndicator, backgroundColor: '#6c757d', color: 'white', marginTop: '3px'}}>
+                    Off: {totalOff}
                   </div>
                 )}
               </div>

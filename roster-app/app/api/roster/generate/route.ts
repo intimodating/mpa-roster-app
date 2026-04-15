@@ -130,7 +130,10 @@ export async function POST(req: Request) {
         // Employees for the scheduler need to include their team for team-based scheduling
         // Current logic only fetches non-planners. This might need to be adjusted if planners can be scheduled.
         // Assuming only non-planners are schedulable.
-        const schedulableEmployees = await User.find({ account_type: 'Non-Planner' }).select('user_id proficiency_grade team account_type -_id').lean() as MongooseUserDocument[];
+        const schedulableEmployees = await User.find({ account_type: 'Non-Planner' })
+            .select('user_id proficiency_grade team account_type -_id')
+            .sort({ user_id: 1 })
+            .lean() as MongooseUserDocument[];
         console.log(`[Generate] Found ${schedulableEmployees.length} schedulable employees.`);
         
         // Fetch competencies for all schedulable employees

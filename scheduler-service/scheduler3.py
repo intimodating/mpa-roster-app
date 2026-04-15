@@ -44,8 +44,12 @@ def main(data):
     leave_data = data.get("leaveData", {})
     ojt_data = data.get("ojtData", {}) # { date: { user_id: { shift_type: console, ... } } }
 
+    # Use Hardcoded Pattern as requested
+    pattern_sequence = PATTERN_SEQUENCE
+    pattern_length = PATTERN_LENGTH
+
     sys.stderr.write(f"Scheduler3 (Competency): Mimicking Scheduler4 logic for stability...\n")
-    sys.stderr.write(f"Employees={len(employees_data)}, requests={len(requests_data)}, pattern_length={PATTERN_LENGTH}\n")
+    sys.stderr.write(f"Employees={len(employees_data)}, requests={len(requests_data)}, pattern_length={pattern_length}\n")
 
     model = cp_model.CpModel()
 
@@ -57,6 +61,9 @@ def main(data):
     date_to_index = {date: i for i, date in enumerate(all_dates)}
 
     # --- Preprocess competency counts and scarcity ---
+    # Sort employees by ID for deterministic behavior
+    employees_data = sorted(employees_data, key=lambda x: x["id"])
+    
     comp_counts = {}
     for emp in employees_data:
         for comp in emp.get("competencies", []):
@@ -81,13 +88,13 @@ def main(data):
     
     if has_custom_offsets:
         for i, emp in enumerate(employees_data):
-            employee_offsets[i] = int(emp.get("offset", 0)) % PATTERN_LENGTH
+            employee_offsets[i] = int(emp.get("offset", 0)) % pattern_length
     else:
         # Greedily assign offsets to balance competencies across the pattern phases
-        offset_counts = [0] * PATTERN_LENGTH
-        comp_offset_counts = {c: [0] * PATTERN_LENGTH for c in scarcity_scores.keys()}
+        offset_counts = [0] * pattern_length
+        comp_offset_counts = {c: [0] * pattern_length for c in scarcity_scores.keys()}
         
-        # Sort employees by their most constrained competency scarcity
+        # Sort indices (already deterministic because employees_data is sorted)
         def get_emp_max_scarcity(idx):
             comps = employees_data[idx].get("competencies", [])
             if not comps: return 0
@@ -101,7 +108,7 @@ def main(data):
             best_offset = -1
             min_score = float('inf')
             
-            for o in range(PATTERN_LENGTH):
+            for o in range(pattern_length):
                 # Score factors: overall offset balance + competency-specific balance
                 score = offset_counts[o] * 10
                 for c in comps:
@@ -176,8 +183,8 @@ def main(data):
 
             # --- CUSTOM PATTERN LOGIC (HARD CONSTRAINTS) ---
             offset = employee_offsets.get(e_idx, 0)
-            pattern_pos = (d_idx + offset) % PATTERN_LENGTH
-            expected_s = PATTERN_SEQUENCE[pattern_pos]
+            pattern_pos = (d_idx + offset) % pattern_length
+            expected_s = pattern_sequence[pattern_pos]
 
             if expected_s == OFF:
                 continue
@@ -213,10 +220,17 @@ def main(data):
     total_slots_required = sum(comp_requirements.values())
     shift_capacity = {s: 0 for s in SHIFT_TYPES}
     for d_idx in range(num_days):
+        date_str = all_dates[d_idx]
         for e_idx in range(num_employees):
+            emp_id = employees_data[e_idx]["id"]
+            if emp_id in leave_data and date_str in leave_data[emp_id]:
+                continue
+            if ojt_blocked_day.get((e_idx, d_idx)):
+                continue
+
             offset = employee_offsets.get(e_idx, 0)
-            pattern_pos = (d_idx + offset) % PATTERN_LENGTH
-            expected_s = PATTERN_SEQUENCE[pattern_pos]
+            pattern_pos = (d_idx + offset) % pattern_length
+            expected_s = pattern_sequence[pattern_pos]
             if expected_s != OFF:
                 shift_capacity[expected_s] += 1
     
@@ -252,15 +266,15 @@ def main(data):
     for e_idx in range(num_employees):
         for d_idx in range(num_days):
             offset = employee_offsets.get(e_idx, 0)
-            pattern_pos = (d_idx + offset) % PATTERN_LENGTH
-            expected = PATTERN_SEQUENCE[pattern_pos]
+            pattern_pos = (d_idx + offset) % pattern_length
+            expected = pattern_sequence[pattern_pos]
 
             dev = model.NewBoolVar("")
             pattern_deviation_vars.append(dev)
 
             all_emp_vars = emp_day_vars.get((e_idx, d_idx), [])
             if not all_emp_vars:
-                if expected != OFF:
+                if expected != OFF and not ojt_blocked_day.get((e_idx, d_idx)):
                     model.Add(dev == 1)
                 else:
                     model.Add(dev == 0)
@@ -323,6 +337,11 @@ def main(data):
     sys.stderr.write(f"Scheduler3: Solver Status: {solver.StatusName(status)}\n")
     sys.stderr.write(f"Scheduler3: Objective Value: {solver.ObjectiveValue()}\n")
 
+    # Debug: Print assigned offsets
+    sys.stderr.write("Scheduler3: Assigned Offsets:\n")
+    for e_idx, offset in sorted(employee_offsets.items()):
+        sys.stderr.write(f"  Employee {employees_data[e_idx]['id']}: Offset {offset}\n")
+
     if status not in (cp_model.OPTIMAL, cp_model.FEASIBLE):
         return json.dumps({"error": f"Solver status: {solver.StatusName(status)}"})
 
@@ -330,6 +349,8 @@ def main(data):
     # Initialize roster with all dates to ensure even empty dates are sent back
     roster = {dt: {ln: {sn: [] for sn in SHIFT_NAMES.values()} for ln in LOCATION_NAMES.values()} for dt in all_dates}
     assigned_count = 0
+    assigned_employees_per_day = set()
+
     # Add regular assignments
     for (e_idx, d_idx, s_idx, l_idx, comp_name), v in assign.items():
         if solver.Value(v):
@@ -342,6 +363,7 @@ def main(data):
                 "assigned_console": comp_name,
                 "is_ojt": False
             })
+            assigned_employees_per_day.add((e_idx, d_idx))
 
     # Add OJT assignments
     for ojt in ojt_assignments:
@@ -350,12 +372,46 @@ def main(data):
         shift_name = ojt["shift_name"]
         loc_name = ojt["location"] 
         if date_str not in roster:
-            # This case shouldn't happen if all dates are in all_dates, but for safety:
             roster[date_str] = {ln: {sn: [] for sn in SHIFT_NAMES.values()} for ln in LOCATION_NAMES.values()}
         roster[date_str][loc_name][shift_name].append({
             "user_id": ojt["user_id"],
             "assigned_console": ojt["assigned_console"],
             "is_ojt": True
         })
+        d_idx = date_to_index.get(date_str)
+        if d_idx is not None:
+            e_idx = user_to_idx.get(ojt["user_id"])
+            if e_idx is not None:
+                assigned_employees_per_day.add((e_idx, d_idx))
+
+    # Add Reserve and Off status
+    for d_idx, date_str in enumerate(all_dates):
+        for e_idx, emp in enumerate(employees_data):
+            if (e_idx, d_idx) in assigned_employees_per_day:
+                continue
+            
+            emp_id = emp["id"]
+            if emp_id in leave_data and date_str in leave_data[emp_id]:
+                continue
+                
+            offset = employee_offsets.get(e_idx, 0)
+            pattern_pos = (d_idx + offset) % pattern_length
+            expected_s = pattern_sequence[pattern_pos]
+            
+            if expected_s == OFF:
+                # Explicitly scheduled OFF
+                roster[date_str]["East"]["Morning"].append({
+                    "user_id": emp_id,
+                    "assigned_console": "OFF",
+                    "is_ojt": False
+                })
+            else:
+                # Reserve for the expected shift
+                shift_name = SHIFT_NAMES[expected_s]
+                roster[date_str]["East"][shift_name].append({
+                    "user_id": emp_id,
+                    "assigned_console": "Reserve",
+                    "is_ojt": False
+                })
 
     return json.dumps(roster)

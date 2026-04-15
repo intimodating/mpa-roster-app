@@ -68,8 +68,10 @@ const ShiftLane: React.FC<any> = ({ location, shiftType, workers, userLookup, on
         setSearchTerm('');
     };
 
-    // Split workers into normal and OJT
-    const normalWorkers = useMemo(() => workers.filter((w: any) => !w.is_ojt), [workers]);
+    // Split workers into categories
+    const assignedWorkers = useMemo(() => workers.filter((w: any) => !w.is_ojt && w.assigned_console !== 'Reserve' && w.assigned_console !== 'OFF'), [workers]);
+    const reserveWorkers = useMemo(() => workers.filter((w: any) => !w.is_ojt && w.assigned_console === 'Reserve'), [workers]);
+    const offWorkers = useMemo(() => workers.filter((w: any) => !w.is_ojt && w.assigned_console === 'OFF'), [workers]);
     const ojtWorkers = useMemo(() => workers.filter((w: any) => w.is_ojt), [workers]);
 
     // Sort workers by proficiency_grade
@@ -88,9 +90,9 @@ const ShiftLane: React.FC<any> = ({ location, shiftType, workers, userLookup, on
             <div style={{ marginBottom: '10px' }}>
                 <h4 style={{ fontSize: '0.9em', color: '#82ca9d', marginBottom: '5px' }}>Assigned Workers:</h4>
                 <div style={userListStyles.container}>
-                    {normalWorkers.length === 0 ? (
+                    {assignedWorkers.length === 0 ? (
                         <p style={userListStyles.emptyText}>No users assigned.</p>
-                    ) : sortWorkers(normalWorkers).map(worker => (
+                    ) : sortWorkers(assignedWorkers).map(worker => (
                         <div key={worker.user_id} style={userListStyles.userItem}>
                             <span>
                                 <strong style={{color: '#82ca9d'}}>{userLookup[worker.user_id]?.name || 'Unknown User'}</strong>
@@ -103,15 +105,32 @@ const ShiftLane: React.FC<any> = ({ location, shiftType, workers, userLookup, on
                 </div>
             </div>
 
-            <div style={{ marginBottom: '15px' }}>
-                <h4 style={{ fontSize: '0.9em', color: '#ffc658', marginBottom: '5px' }}>OJT Workers:</h4>
-                <div style={{ ...userListStyles.container, border: '1px dashed #ffc658' }}>
+            {reserveWorkers.length > 0 && (
+                <div style={{ marginBottom: '10px' }}>
+                    <h4 style={{ fontSize: '0.9em', color: '#B8860B', marginBottom: '5px' }}>Reserve Workers:</h4>
+                    <div style={{ ...userListStyles.container, border: '1px solid #B8860B' }}>
+                        {sortWorkers(reserveWorkers).map(worker => (
+                            <div key={worker.user_id} style={{ ...userListStyles.userItem, borderLeft: '4px solid #B8860B' }}>
+                                <span>
+                                    <strong style={{color: '#B8860B'}}>{userLookup[worker.user_id]?.name || 'Unknown User'}</strong>
+                                    {` (${worker.user_id}) - T${userLookup[worker.user_id]?.team || 'N/A'}, P${userLookup[worker.user_id]?.proficiency_grade || 'N/A'}`}
+                                </span>
+                                <button onClick={() => onRemove(location, shiftType, worker.user_id)} style={userListStyles.removeButton}>&times;</button>
+                            </div>
+                        ))}
+                    </div>
+                </div>
+            )}
+
+            <div style={{ marginBottom: '10px' }}>
+                <h4 style={{ fontSize: '0.9em', color: '#B8860B', marginBottom: '5px' }}>OJT Workers:</h4>
+                <div style={{ ...userListStyles.container, border: '1px dashed #B8860B' }}>
                     {ojtWorkers.length === 0 ? (
                         <p style={userListStyles.emptyText}>No OJT assigned.</p>
                     ) : sortWorkers(ojtWorkers).map(worker => (
-                        <div key={worker.user_id} style={{ ...userListStyles.userItem, borderLeft: '4px solid #ffc658' }}>
+                        <div key={worker.user_id} style={{ ...userListStyles.userItem, borderLeft: '4px solid #B8860B' }}>
                             <span>
-                                <strong style={{color: '#ffc658'}}>{userLookup[worker.user_id]?.name || 'Unknown User'}</strong>
+                                <strong style={{color: '#B8860B'}}>{userLookup[worker.user_id]?.name || 'Unknown User'}</strong>
                                 {` (${worker.user_id}) - T${userLookup[worker.user_id]?.team || 'N/A'}, P${userLookup[worker.user_id]?.proficiency_grade || 'N/A'}`}
                                 {worker.assigned_console && <span style={{ color: '#aaa', fontStyle: 'italic' }}> ({worker.assigned_console})</span>}
                             </span>
@@ -120,6 +139,23 @@ const ShiftLane: React.FC<any> = ({ location, shiftType, workers, userLookup, on
                     ))}
                 </div>
             </div>
+
+            {offWorkers.length > 0 && (
+                <div style={{ marginBottom: '10px' }}>
+                    <h4 style={{ fontSize: '0.9em', color: '#6c757d', marginBottom: '5px' }}>OFF (Pattern):</h4>
+                    <div style={{ ...userListStyles.container, border: '1px solid #6c757d' }}>
+                        {sortWorkers(offWorkers).map(worker => (
+                            <div key={worker.user_id} style={{ ...userListStyles.userItem, borderLeft: '4px solid #6c757d' }}>
+                                <span>
+                                    <strong style={{color: '#6c757d'}}>{userLookup[worker.user_id]?.name || 'Unknown User'}</strong>
+                                    {` (${worker.user_id}) - T${userLookup[worker.user_id]?.team || 'N/A'}, P${userLookup[worker.user_id]?.proficiency_grade || 'N/A'}`}
+                                </span>
+                                <button onClick={() => onRemove(location, shiftType, worker.user_id)} style={userListStyles.removeButton}>&times;</button>
+                            </div>
+                        ))}
+                    </div>
+                </div>
+            )}
 
             <div style={{ display: 'flex', gap: '10px', marginTop: '10px', alignItems: 'center', flexWrap: 'wrap' }}>
                 <div style={{ flex: 2, position: 'relative', minWidth: '200px' }}>
@@ -166,12 +202,118 @@ const ShiftLane: React.FC<any> = ({ location, shiftType, workers, userLookup, on
     );
 };
 
+interface ReplacementContext {
+    location: 'East' | 'West';
+    shiftType: keyof ShiftDetails;
+    userId: string;
+    console?: string;
+    proficiency: number;
+}
+
+interface ReplacementCandidate {
+    user_id: string;
+    proficiency_grade: number;
+    reserve_deploy_count: number;
+    name?: string;
+}
+
+interface CategorizedCandidates {
+    [category: string]: ReplacementCandidate[];
+}
+
+// --- SUB-COMPONENT: ReplacementSelector ---
+const ReplacementSelector: React.FC<{
+    context: ReplacementContext;
+    userLookup: Record<string, UserDetails>;
+    onSelect: (replacementId: string | null) => void;
+    onCancel: () => void;
+    date: string;
+}> = ({ context, userLookup, onSelect, onCancel, date }) => {
+    const [categorized, setCategorized] = useState<CategorizedCandidates | null>(null);
+    const [isLoading, setIsLoading] = useState(true);
+
+    useEffect(() => {
+        const fetchReplacements = async () => {
+            try {
+                const res = await fetch('/api/users/find-replacements', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({
+                        date: date,
+                        min_proficiency_grade: context.proficiency,
+                        required_console: context.console
+                    }),
+                });
+                const result = await res.json();
+                if (result.success) {
+                    setCategorized(result.data);
+                }
+            } catch (error) {
+                console.error("Error fetching replacements:", error);
+            } finally {
+                setIsLoading(false);
+            }
+        };
+        fetchReplacements();
+    }, [context, date]);
+
+    return (
+        <div style={{ ...modalStyles.backdrop, zIndex: 2000 }}>
+            <div style={{ ...modalStyles.modal, maxWidth: '600px', zIndex: 2001 }}>
+                <h3 style={modalStyles.header}>Select Replacement for {userLookup[context.userId]?.name || context.userId}</h3>
+                <p style={{ marginBottom: '20px', color: '#ccc' }}>
+                    Role: {context.console || 'Reserve'} | Shift: {context.shiftType} ({context.location})
+                </p>
+
+                <div style={{ display: 'flex', gap: '10px', marginBottom: '20px' }}>
+                    <button 
+                        onClick={() => onSelect(null)} 
+                        style={{ ...modalStyles.saveButton, backgroundColor: '#dc3545', flex: 1 }}
+                    >
+                        Proceed Without Replacement
+                    </button>
+                    <button onClick={onCancel} style={{ ...modalStyles.cancelButton, flex: 1 }}>Cancel</button>
+                </div>
+
+                {isLoading ? <p>Loading candidates...</p> : (
+                    <div style={{ maxHeight: '400px', overflowY: 'auto' }}>
+                        {categorized && Object.entries(categorized).map(([category, list]) => (
+                            list.length > 0 && (
+                                <div key={category} style={{ marginBottom: '15px', backgroundColor: '#333', padding: '10px', borderRadius: '6px' }}>
+                                    <h4 style={{ margin: '0 0 10px 0', color: '#B8860B', borderBottom: '1px solid #444', paddingBottom: '5px' }}>{category}</h4>
+                                    <div style={{ display: 'flex', flexDirection: 'column', gap: '5px' }}>
+                                        {list.map(c => (
+                                            <div key={c.user_id} style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', padding: '5px', borderBottom: '1px solid #444' }}>
+                                                <span>
+                                                    <strong>{userLookup[c.user_id]?.name || c.user_id}</strong> (P{c.proficiency_grade}, D{c.reserve_deploy_count || 0})
+                                                </span>
+                                                <button 
+                                                    onClick={() => onSelect(c.user_id)} 
+                                                    style={{ ...modalStyles.saveButton, padding: '5px 10px', fontSize: '0.8em' }}
+                                                >
+                                                    Select
+                                                </button>
+                                            </div>
+                                        ))}
+                                    </div>
+                                </div>
+                            )
+                        ))}
+                        {(!categorized || Object.values(categorized).every(l => l.length === 0)) && <p>No suitable replacements found.</p>}
+                    </div>
+                )}
+            </div>
+        </div>
+    );
+};
+
 // --- MAIN COMPONENT: ShiftEditorModal ---
 const ShiftEditorModal: React.FC<ModalProps> = ({ shiftData, onClose, onSave }) => {
     const [activeLocation, setActiveLocation] = useState<'East' | 'West'>('East');
     const [shifts, setShifts] = useState<ShiftData>(shiftData);
     const [allUsers, setAllUsers] = useState<UserDetails[]>([]);
     const [userLookup, setUserLookup] = useState<Record<string, UserDetails>>({});
+    const [replacementContext, setReplacementContext] = useState<ReplacementContext | null>(null);
 
     useEffect(() => {
         const fetchUsers = async () => {
@@ -207,6 +349,64 @@ const ShiftEditorModal: React.FC<ModalProps> = ({ shiftData, onClose, onSave }) 
         return allUsers.filter(user => !busyUsers.has(user.user_id));
     }, [allUsers, busyUsers]);
 
+    const handleRemoveUserRequest = (location: 'East' | 'West', shiftType: keyof ShiftDetails, userId: string) => {
+        const worker = shifts[location][shiftType].find(w => w.user_id === userId);
+        if (worker) {
+            setReplacementContext({
+                location,
+                shiftType,
+                userId,
+                console: worker.assigned_console,
+                proficiency: userLookup[userId]?.proficiency_grade || 1
+            });
+        }
+    };
+
+    const handleReplacementDecision = (replacementId: string | null) => {
+        if (!replacementContext) return;
+
+        const { location, shiftType, userId, console } = replacementContext;
+
+        setShifts(prev => {
+            // 1. Create a deep clone or map-based update to remove the replacement from ANY existing role on that day
+            const newEast = { ...prev.East };
+            const newWest = { ...prev.West };
+
+            const removeIdFromDetails = (details: ShiftDetails) => {
+                return {
+                    Morning: details.Morning.filter(w => w.user_id !== userId && w.user_id !== replacementId),
+                    Afternoon: details.Afternoon.filter(w => w.user_id !== userId && w.user_id !== replacementId),
+                    Night: details.Night.filter(w => w.user_id !== userId && w.user_id !== replacementId),
+                };
+            };
+
+            newEast.Morning = removeIdFromDetails(newEast).Morning;
+            newEast.Afternoon = removeIdFromDetails(newEast).Afternoon;
+            newEast.Night = removeIdFromDetails(newEast).Night;
+            newWest.Morning = removeIdFromDetails(newWest).Morning;
+            newWest.Afternoon = removeIdFromDetails(newWest).Afternoon;
+            newWest.Night = removeIdFromDetails(newWest).Night;
+
+            // 2. If we have a replacement, add them to the target shift
+            if (replacementId) {
+                const targetLocation = location === 'East' ? newEast : newWest;
+                targetLocation[shiftType].push({
+                    user_id: replacementId,
+                    assigned_console: console,
+                    is_ojt: false
+                });
+            }
+
+            return {
+                ...prev,
+                East: newEast,
+                West: newWest
+            };
+        });
+
+        setReplacementContext(null);
+    };
+
     const handleRemoveUser = (location: 'East' | 'West', shiftType: keyof ShiftDetails, userId: string) => {
         setShifts(prev => ({
             ...prev,
@@ -229,6 +429,15 @@ const ShiftEditorModal: React.FC<ModalProps> = ({ shiftData, onClose, onSave }) 
     
     return (
         <div style={modalStyles.backdrop}>
+            {replacementContext && (
+                <ReplacementSelector 
+                    context={replacementContext}
+                    userLookup={userLookup}
+                    date={shifts.date}
+                    onSelect={handleReplacementDecision}
+                    onCancel={() => setReplacementContext(null)}
+                />
+            )}
             <div style={modalStyles.modal}>
                 <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', borderBottom: '1px solid #555', marginBottom: '20px', paddingBottom: '10px' }}>
                     <h2 style={{ ...modalStyles.header, borderBottom: 'none', marginBottom: 0, paddingBottom: 0 }}>Edit Roster for {shiftData.date}</h2>
@@ -265,7 +474,7 @@ const ShiftEditorModal: React.FC<ModalProps> = ({ shiftData, onClose, onSave }) 
                             shiftType={shiftType}
                             workers={shifts[activeLocation][shiftType as keyof ShiftDetails]}
                             userLookup={userLookup}
-                            onRemove={handleRemoveUser}
+                            onRemove={handleRemoveUserRequest}
                             onAdd={handleAddUser}
                             availableUsers={availableUsers}
                         />

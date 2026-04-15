@@ -3,6 +3,7 @@ import React, { useState, useEffect, useMemo, useCallback } from 'react';
 import { useRouter } from 'next/navigation';
 import ShiftViewerModal from '../ShiftViewerModal';
 import ShiftDetailsModal from '../ShiftDetailsModal';
+import ExportSimulationReportModal from '../ExportSimulationReportModal';
 
 const DEFAULT_PATTERN = ["Morning", "Morning", "Afternoon", "Afternoon", "OFF", "Night", "Night", "OFF", "OFF"];
 
@@ -12,6 +13,7 @@ export default function SimulatePage() {
     const [meta, setMeta] = useState<any>(null);
     const [currentDate, setCurrentDate] = useState<Date>(new Date());
     const [isViewerModalOpen, setIsViewerModalOpen] = useState(false);
+    const [isExportModalOpen, setIsExportModalOpen] = useState(false);
     const [selectedShiftData, setSelectedShiftData] = useState<any>(null);
     const [viewMode, setViewMode] = useState<'calendar' | 'matrix'>('calendar');
     const [users, setUsers] = useState<any[]>([]);
@@ -261,6 +263,12 @@ export default function SimulatePage() {
                         >
                             Matrix View
                         </button>
+                        <button 
+                            onClick={() => setIsExportModalOpen(true)}
+                            style={{...styles.toggleBtn, backgroundColor: '#28a745'}}
+                        >
+                            Export Report
+                        </button>
                         <button onClick={handleBack} style={styles.backButton}>Back to Roster (Exit Simulation)</button>
                     </div>
                 </div>
@@ -330,6 +338,17 @@ export default function SimulatePage() {
                             </button>
                         </div>
                     </div>
+                )}
+
+                {isExportModalOpen && (
+                    <ExportSimulationReportModal
+                        onClose={() => setIsExportModalOpen(false)}
+                        rosterData={rosterData}
+                        leaveData={meta.leaveData || {}}
+                        users={users}
+                        simStartDate={meta.startDate}
+                        simEndDate={meta.endDate}
+                    />
                 )}
             </div>
         </div>

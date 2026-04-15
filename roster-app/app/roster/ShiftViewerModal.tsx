@@ -57,7 +57,9 @@ const ShiftViewerModal: React.FC<Props> = ({ shiftData, userLookup, onClose }) =
     };
 
     const renderEmployeeList = (workers: WorkerAssignment[]) => {
-        const normalWorkers = workers.filter(w => !w.is_ojt);
+        const assignedWorkers = workers.filter(w => !w.is_ojt && w.assigned_console !== 'Reserve' && w.assigned_console !== 'OFF');
+        const reserveWorkers = workers.filter(w => !w.is_ojt && w.assigned_console === 'Reserve');
+        const offWorkers = workers.filter(w => !w.is_ojt && w.assigned_console === 'OFF');
         const ojtWorkers = workers.filter(w => w.is_ojt);
 
         return (
@@ -65,7 +67,7 @@ const ShiftViewerModal: React.FC<Props> = ({ shiftData, userLookup, onClose }) =
                 <div style={{ marginBottom: '15px' }}>
                     <h4 style={{ fontSize: '0.9em', color: '#82ca9d', borderBottom: '1px solid #444', marginBottom: '5px' }}>Assigned:</h4>
                     <ul style={styles.employeeList}>
-                        {normalWorkers.length === 0 ? <li style={styles.employeeItem}>None</li> : sortWorkers(normalWorkers).map(emp => (
+                        {assignedWorkers.length === 0 ? <li style={styles.employeeItem}>None</li> : sortWorkers(assignedWorkers).map(emp => (
                             <li key={emp.user_id} style={styles.employeeItem}>
                                 <span style={styles.workerId}>{userLookup && userLookup[emp.user_id]?.name || emp.user_id}</span>
                                 {emp.assigned_console && <span style={styles.consoleTag}>{emp.assigned_console}</span>}
@@ -73,17 +75,41 @@ const ShiftViewerModal: React.FC<Props> = ({ shiftData, userLookup, onClose }) =
                         ))}
                     </ul>
                 </div>
-                <div>
-                    <h4 style={{ fontSize: '0.9em', color: '#ffc658', borderBottom: '1px solid #444', marginBottom: '5px' }}>OJT:</h4>
+                {reserveWorkers.length > 0 && (
+                    <div style={{ marginBottom: '15px' }}>
+                        <h4 style={{ fontSize: '0.9em', color: '#B8860B', borderBottom: '1px solid #444', marginBottom: '5px' }}>Reserve:</h4>
+                        <ul style={styles.employeeList}>
+                            {sortWorkers(reserveWorkers).map(emp => (
+                                <li key={emp.user_id} style={{ ...styles.employeeItem, borderLeft: '2px solid #B8860B', paddingLeft: '5px' }}>
+                                    <span style={styles.workerId}>{userLookup && userLookup[emp.user_id]?.name || emp.user_id}</span>
+                                </li>
+                            ))}
+                        </ul>
+                    </div>
+                )}
+                <div style={{ marginBottom: '15px' }}>
+                    <h4 style={{ fontSize: '0.9em', color: '#B8860B', borderBottom: '1px solid #444', marginBottom: '5px' }}>OJT:</h4>
                     <ul style={styles.employeeList}>
                         {ojtWorkers.length === 0 ? <li style={styles.employeeItem}>None</li> : sortWorkers(ojtWorkers).map(emp => (
-                            <li key={emp.user_id} style={{ ...styles.employeeItem, borderLeft: '2px solid #ffc658', paddingLeft: '5px' }}>
+                            <li key={emp.user_id} style={{ ...styles.employeeItem, borderLeft: '2px solid #B8860B', paddingLeft: '5px' }}>
                                 <span style={styles.workerId}>{userLookup && userLookup[emp.user_id]?.name || emp.user_id}</span>
                                 {emp.assigned_console && <span style={styles.consoleTag}>{emp.assigned_console}</span>}
                             </li>
                         ))}
                     </ul>
                 </div>
+                {offWorkers.length > 0 && (
+                    <div style={{ marginBottom: '15px' }}>
+                        <h4 style={{ fontSize: '0.9em', color: '#6c757d', borderBottom: '1px solid #444', marginBottom: '5px' }}>OFF (Pattern):</h4>
+                        <ul style={styles.employeeList}>
+                            {sortWorkers(offWorkers).map(emp => (
+                                <li key={emp.user_id} style={{ ...styles.employeeItem, borderLeft: '2px solid #6c757d', paddingLeft: '5px' }}>
+                                    <span style={styles.workerId}>{userLookup && userLookup[emp.user_id]?.name || emp.user_id}</span>
+                                </li>
+                            ))}
+                        </ul>
+                    </div>
+                )}
             </>
         );
     };

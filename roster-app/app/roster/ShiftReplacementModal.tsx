@@ -14,7 +14,11 @@ interface LeaveRequest {
 interface ReplacementCandidate {
     user_id: string;
     proficiency_grade: number;
-    reserve_deploy_count: number; // Added this field
+    reserve_deploy_count: number;
+}
+
+interface CategorizedCandidates {
+    [category: string]: ReplacementCandidate[];
 }
 
 interface ApplicantDetails {
@@ -30,7 +34,7 @@ interface ShiftReplacementModalProps {
 
 export default function ShiftReplacementModal({ leave, onClose, onReplacementSuccess }: ShiftReplacementModalProps) {
     const [applicantDetails, setApplicantDetails] = useState<ApplicantDetails | null>(null);
-    const [candidates, setCandidates] = useState<ReplacementCandidate[]>([]);
+    const [categorizedCandidates, setCategorizedCandidates] = useState<CategorizedCandidates | null>(null);
     const [isLoading, setIsLoading] = useState(true);
     const [error, setError] = useState<string | null>(null);
 
@@ -49,7 +53,7 @@ export default function ShiftReplacementModal({ leave, onClose, onReplacementSuc
                 setApplicantDetails(userData.data);
 
                 // Extract console if exists (e.g., "Morning (VTIS East)")
-                const consoleMatch = leave.shift.match(/\(([^)]+)\)/);
+                const consoleMatch = leave.shift ? leave.shift.match(/\(([^)]+)\)/) : null;
                 const requiredConsole = consoleMatch ? consoleMatch[1] : null;
 
                 // Fetch replacement candidates
@@ -66,7 +70,7 @@ export default function ShiftReplacementModal({ leave, onClose, onReplacementSuc
                 const replacementsData = await replacementsRes.json();
                 if (!replacementsData.success) throw new Error(replacementsData.message);
                 
-                setCandidates(replacementsData.data);
+                setCategorizedCandidates(replacementsData.data);
 
             } catch (err: unknown) {
                 console.error("Error fetching replacement data:", err);
@@ -117,6 +121,8 @@ export default function ShiftReplacementModal({ leave, onClose, onReplacementSuc
         }
     };
 
+    const hasAnyCandidates = categorizedCandidates && Object.values(categorizedCandidates).some(arr => arr.length > 0);
+
     return (
         <div style={styles.modalBackdrop}>
             <div style={styles.modalContent}>
@@ -136,20 +142,27 @@ export default function ShiftReplacementModal({ leave, onClose, onReplacementSuc
                         </div>
 
                         <h4 style={styles.listHeader}>Available Replacements</h4>
-                        {candidates.length > 0 ? (
-                            <ul style={styles.candidateList}>
-                                {candidates.map(c => (
-                                    <li key={c.user_id} style={styles.candidateItem}>
-                                        <span>User: {c.user_id} (Grade: {c.proficiency_grade}, Deploy Count: {c.reserve_deploy_count || 0})</span>
-                                        <button 
-                                            style={styles.selectButton}
-                                            onClick={() => handleSelectReplacement(c.user_id)}
-                                        >
-                                            Select
-                                        </button>
-                                    </li>
-                                ))}
-                            </ul>
+                        {hasAnyCandidates ? (
+                            Object.entries(categorizedCandidates!).map(([category, list]) => (
+                                list.length > 0 && (
+                                    <div key={category} style={styles.categoryContainer}>
+                                        <h5 style={styles.categoryHeader}>{category}</h5>
+                                        <ul style={styles.candidateList}>
+                                            {list.map(c => (
+                                                <li key={c.user_id} style={styles.candidateItem}>
+                                                    <span>User: {c.user_id} (Grade: {c.proficiency_grade}, Deploy Count: {c.reserve_deploy_count || 0})</span>
+                                                    <button 
+                                                        style={styles.selectButton}
+                                                        onClick={() => handleSelectReplacement(c.user_id)}
+                                                    >
+                                                        Select
+                                                    </button>
+                                                </li>
+                                            ))}
+                                        </ul>
+                                    </div>
+                                )
+                            ))
                         ) : (
                             <p>No suitable replacement candidates found.</p>
                         )}
@@ -180,8 +193,8 @@ const styles: Record<string, React.CSSProperties> = {
         padding: '20px',
         borderRadius: '8px',
         width: '90%',
-        maxWidth: '600px',
-        maxHeight: '80vh',
+        maxWidth: '650px',
+        maxHeight: '85vh',
         overflowY: 'auto',
         position: 'relative',
     },
@@ -201,32 +214,51 @@ const styles: Record<string, React.CSSProperties> = {
     },
     applicantInfo: {
         marginBottom: '20px',
-        padding: '10px',
+        padding: '15px',
         backgroundColor: '#3b3b3b',
         borderRadius: '6px',
+        borderLeft: '4px solid #1a73e8',
     },
     listHeader: {
         marginTop: '20px',
         borderBottom: '1px solid #555',
         paddingBottom: '5px',
+        fontSize: '1.2rem',
+        color: '#82ca9d',
+    },
+    categoryContainer: {
+        marginTop: '15px',
+        backgroundColor: '#333',
+        borderRadius: '6px',
+        padding: '10px',
+        border: '1px solid #444',
+    },
+    categoryHeader: {
+        margin: '0 0 10px 0',
+        paddingBottom: '5px',
+        borderBottom: '1px solid #555',
+        color: '#ffd700',
+        fontSize: '1rem',
     },
     candidateList: {
         listStyle: 'none',
         padding: 0,
+        margin: 0,
     },
     candidateItem: {
         display: 'flex',
         justifyContent: 'space-between',
         alignItems: 'center',
-        padding: '10px',
+        padding: '8px 5px',
         borderBottom: '1px solid #444',
     },
     selectButton: {
-        padding: '8px 12px',
+        padding: '6px 12px',
         border: 'none',
-        borderRadius: '6px',
+        borderRadius: '4px',
         backgroundColor: '#34a853',
         color: 'white',
         cursor: 'pointer',
+        fontSize: '0.9rem',
     },
 };

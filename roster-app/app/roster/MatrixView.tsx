@@ -150,34 +150,37 @@ const MatrixView: React.FC<MatrixViewProps> = React.memo(({ currentDate, rosterD
                       const getUserShift = (assignments: any[], userId: string, label: string) => {
                         const found = assignments.find(w => w.user_id === userId);
                         if (!found) return null;
+                        if (found.assigned_console === 'Reserve') return `R${label}`;
+                        if (found.assigned_console === 'OFF') return '0';
                         return found.is_ojt ? `${label}T` : label;
                       };
 
-                      // Check East shifts
-                      const eM = getUserShift(dayRoster.East.Morning, user.user_id, '1');
-                      if (eM) shifts.push(eM);
-                      const eA = getUserShift(dayRoster.East.Afternoon, user.user_id, '2');
-                      if (eA) shifts.push(eA);
-                      const eN = getUserShift(dayRoster.East.Night, user.user_id, '3');
-                      if (eN) shifts.push(eN);
+                      // Check all possible assignments
+                      const possibleShifts = [
+                        getUserShift(dayRoster.East.Morning, user.user_id, '1'),
+                        getUserShift(dayRoster.West.Morning, user.user_id, '1'),
+                        getUserShift(dayRoster.East.Afternoon, user.user_id, '2'),
+                        getUserShift(dayRoster.West.Afternoon, user.user_id, '2'),
+                        getUserShift(dayRoster.East.Night, user.user_id, '3'),
+                        getUserShift(dayRoster.West.Night, user.user_id, '3'),
+                      ];
 
-                      // Check West shifts
-                      const wM = getUserShift(dayRoster.West.Morning, user.user_id, '1');
-                      if (wM) shifts.push(wM);
-                      const wA = getUserShift(dayRoster.West.Afternoon, user.user_id, '2');
-                      if (wA) shifts.push(wA);
-                      const wN = getUserShift(dayRoster.West.Night, user.user_id, '3');
-                      if (wN) shifts.push(wN);
+                      possibleShifts.forEach(s => { if (s) shifts.push(s); });
                     }
 
                     let backgroundColor = matrixStyles.td.backgroundColor;
+                    const uniqueShifts = [...new Set(shifts)];
+                    const isReserve = uniqueShifts.some(s => s.startsWith('R'));
+                    const isOjt = uniqueShifts.some(s => s.includes('T'));
+                    const isExplicitOff = uniqueShifts.includes('0');
+
                     if (isOnLeave) {
                       backgroundColor = leaveForUserOnDay?.sub_leave_type ? 'orange' : 'blue';
-                    } else if (shifts.some(s => s.includes('T'))) {
-                      backgroundColor = '#FFD700'; // Yellow for OJT
+                    } else if (isReserve || isOjt) {
+                      backgroundColor = '#B8860B'; // Darker Gold for Reserve and OJT
                     }
                     
-                    const cellContent = isOnLeave ? 'L' : [...new Set(shifts)].join(',') || '0';
+                    const cellContent = isOnLeave ? 'L' : (uniqueShifts.length > 0 ? uniqueShifts.filter(s => s !== '0' || uniqueShifts.length === 1).join(',') : '0');
 
                     return (
                       <td
@@ -202,6 +205,17 @@ const MatrixView: React.FC<MatrixViewProps> = React.memo(({ currentDate, rosterD
             )}
           </tbody>
         </table>
+      </div>
+
+      <div style={matrixStyles.legend}>
+        <h4 style={{ margin: '0 0 10px 0' }}>Legend:</h4>
+        <div style={{ display: 'flex', gap: '20px', flexWrap: 'wrap' }}>
+          <div style={matrixStyles.legendItem}><span style={{ ...matrixStyles.legendBox, backgroundColor: '#1e1e1e' }}></span> Normal Shift (1, 2, 3)</div>
+          <div style={matrixStyles.legendItem}><span style={{ ...matrixStyles.legendBox, backgroundColor: '#B8860B' }}></span> Reserve (R1, R2, R3) / OJT (1T, 2T, 3T)</div>
+          <div style={matrixStyles.legendItem}><span style={{ ...matrixStyles.legendBox, backgroundColor: 'blue' }}></span> Leave (L)</div>
+          <div style={matrixStyles.legendItem}><span style={{ ...matrixStyles.legendBox, backgroundColor: 'orange' }}></span> Special Leave (L)</div>
+          <div style={matrixStyles.legendItem}><strong>0</strong>: Off Day</div>
+        </div>
       </div>
 
       {isLeaveDetailsModalOpen && selectedLeaveDetails && (
@@ -269,6 +283,27 @@ const matrixStyles: Record<string, React.CSSProperties> = {
     overflowX: 'auto', // Enable horizontal scrolling for the table
     maxHeight: '600px', // Limit height for vertical scrolling
     overflowY: 'auto',
+  },
+  legend: {
+    marginTop: '20px',
+    padding: '15px',
+    backgroundColor: '#2c2c2c',
+    borderRadius: '8px',
+    border: '1px solid #555',
+  },
+  legendItem: {
+    display: 'flex',
+    alignItems: 'center',
+    fontSize: '0.9em',
+    color: '#eee',
+  },
+  legendBox: {
+    width: '16px',
+    height: '16px',
+    marginRight: '8px',
+    border: '1px solid #555',
+    borderRadius: '3px',
+    display: 'inline-block',
   },
   table: {
     width: '100%',

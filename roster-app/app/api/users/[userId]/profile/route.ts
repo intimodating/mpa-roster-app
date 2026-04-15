@@ -40,11 +40,13 @@ export async function GET(
         }).lean();
 
         const shiftStats: Record<string, number> = {};
+        let validWorkShifts = 0;
+
         recentShifts.forEach((shift: any) => {
-            if (shift.assigned_console) {
-                shiftStats[shift.assigned_console] = (shiftStats[shift.assigned_console] || 0) + 1;
-            } else {
-                shiftStats["Reserve"] = (shiftStats["Reserve"] || 0) + 1;
+            const console = shift.assigned_console;
+            if (console && console !== 'OFF' && console !== 'Reserve') {
+                shiftStats[console] = (shiftStats[console] || 0) + 1;
+                validWorkShifts++;
             }
         });
 
@@ -59,7 +61,7 @@ export async function GET(
                 user,
                 competencies,
                 shifts: {
-                    total: recentShifts.length,
+                    total: validWorkShifts,
                     breakdown: shiftStats
                 },
                 leaves: {

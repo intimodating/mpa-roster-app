@@ -30,39 +30,68 @@ export async function POST(req: Request) {
             potentialCandidates = potentialCandidates.filter(c => certifiedUserIds.has(c.user_id));
         }
 
-        // 3. Get users on shift on that date
+        // 3. Get roster data for that date to identify Reserves and OFFs
         const startOfDay = new Date(date + 'T00:00:00.000Z');
         const endOfDay = new Date(startOfDay.getTime() + 24 * 60 * 60 * 1000);
 
-        const onShiftUsers = await Roster.find({
+        const rosterAssignments = await Roster.find({
             date: { $gte: startOfDay, $lt: endOfDay }
-        }).select('user_id -_id');
-        const onShiftUserIds = new Set(onShiftUsers.map(u => u.user_id));
+        }).select('user_id shift_type assigned_console -_id').lean();
+
+        const rosterMap: Record<string, { shift_type: string, assigned_console: string }> = {};
+        rosterAssignments.forEach((a: any) => {
+            rosterMap[a.user_id] = { shift_type: a.shift_type, assigned_console: a.assigned_console };
+        });
 
         // 4. Get users on approved leave on that date
         const onLeaveUsers = await Leave.find({
             date: { $gte: startOfDay, $lt: endOfDay },
             status: 'Approved'
-        }).select('user_id -_id');
-        const onLeaveUserIds = new Set(onLeaveUsers.map(u => u.user_id));
+        }).select('user_id -_id').lean();
+        const onLeaveUserIds = new Set(onLeaveUsers.map((u: any) => u.user_id));
 
-        // 5. Filter candidates
-        const availableCandidates = potentialCandidates.filter(c => 
-            !onShiftUserIds.has(c.user_id) && !onLeaveUserIds.has(c.user_id)
-        );
+        // 5. Categorize candidates
+        const categorized: Record<string, any[]> = {
+            "Reserve Morning": [],
+            "Reserve Afternoon": [],
+            "Reserve Night": [],
+            "OFF": []
+        };
 
-        // 5. Sort candidates by proficiency_grade ascending, then reserve_deploy_count ascending
-        availableCandidates.sort((a, b) => {
+        potentialCandidates.forEach((c: any) => {
+            if (onLeaveUserIds.has(c.user_id)) return;
+
+            const rosterInfo = rosterMap[c.user_id];
+            if (!rosterInfo) {
+                // If not in roster at all, assume they are OFF (fallback)
+                categorized["OFF"].push(c);
+                return;
+            }
+
+            if (rosterInfo.assigned_console === 'Reserve') {
+                const catName = `Reserve ${rosterInfo.shift_type}`;
+                if (categorized[catName]) {
+                    categorized[catName].push(c);
+                }
+            } else if (rosterInfo.assigned_console === 'OFF') {
+                categorized["OFF"].push(c);
+            }
+            // Note: People already assigned to a console (not Reserve/OFF) are excluded
+        });
+
+        // 6. Sort within each category
+        const sortFn = (a: any, b: any) => {
             if (a.proficiency_grade !== b.proficiency_grade) {
                 return a.proficiency_grade - b.proficiency_grade;
             }
-            return a.reserve_deploy_count - b.reserve_deploy_count;
+            return (a.reserve_deploy_count || 0) - (b.reserve_deploy_count || 0);
+        };
+
+        Object.keys(categorized).forEach(key => {
+            categorized[key].sort(sortFn);
         });
 
-        // Return all sorted available candidates
-        const selectedCandidates = availableCandidates;
-
-        return NextResponse.json({ success: true, data: selectedCandidates });
+        return NextResponse.json({ success: true, data: categorized });
 
     } catch (error) {
         console.error("Error finding replacements:", error);

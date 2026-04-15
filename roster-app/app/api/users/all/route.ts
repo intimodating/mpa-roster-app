@@ -6,7 +6,7 @@ export async function GET() {
     try {
         await connectToDatabase();
 
-        const users = await User.find({}).select('user_id name team proficiency_grade account_type -_id');
+        const users = await User.find({}).select('user_id name team proficiency_grade account_type reserve_deploy_count -_id');
 
         return NextResponse.json({ success: true, data: users });
     } catch (error) {

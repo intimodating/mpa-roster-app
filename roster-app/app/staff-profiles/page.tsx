@@ -138,7 +138,11 @@ export default function StaffProfilesPage() {
                     <div style={styles.profileContainer}>
                         {/* Instagram Style Header */}
                         <div style={styles.profileHeader}>
-                            <div style={styles.avatarPlaceholder}></div>
+                            <img 
+                                src="https://i.pravatar.cc/300?img=68" 
+                                alt="Profile" 
+                                style={styles.avatarImage} 
+                            />
                             <div style={styles.profileInfo}>
                                 <div style={styles.usernameRow}>
                                     <h2 style={styles.username}>{profileData.user.user_id}</h2>
@@ -196,8 +200,8 @@ export default function StaffProfilesPage() {
                                     Object.entries(profileData.leaves.breakdown).map(([type, count]: [any, any]) => (
                                         <div key={type} style={styles.statCard}>
                                             <div style={styles.statLabel}>{type}</div>
-                                            <div style={styles.statValue}>{calculatePercentage(count, profileData.leaves.total)}%</div>
-                                            <div style={styles.statSub}>{count} days</div>
+                                            <div style={styles.statValue}>{count}</div>
+                                            <div style={styles.statSub}>days</div>
                                         </div>
                                     )) : <p style={styles.emptyText}>No leave data available for this period.</p>
                                 }
@@ -211,46 +215,75 @@ export default function StaffProfilesPage() {
 }
 
 const styles: Record<string, React.CSSProperties> = {
-    root: { minHeight: '100vh', backgroundColor: '#121212', color: '#fff', padding: '40px 20px' },
+    root: { minHeight: '100vh', backgroundColor: '#f8fafc', color: '#1e293b', padding: '40px 20px', fontFamily: '"Inter", "Segoe UI", sans-serif' },
     container: { maxWidth: '800px', margin: '0 auto' },
     headerRow: { display: 'flex', alignItems: 'center', marginBottom: '30px', justifyContent: 'space-between' },
-    backLink: { color: '#0095f6', textDecoration: 'none', fontWeight: 'bold' },
-    title: { fontSize: '1.5em', margin: 0 },
+    backLink: { color: '#3b82f6', textDecoration: 'none', fontWeight: 'bold', fontSize: '0.95em' },
+    title: { fontSize: '1.8rem', fontWeight: 800, color: '#0f172a', margin: 0, letterSpacing: '-0.025em' },
     searchContainer: { position: 'relative', marginBottom: '40px' },
     searchForm: { display: 'flex', gap: '10px' },
-    searchInput: { flex: 1, padding: '12px', borderRadius: '8px', border: '1px solid #333', backgroundColor: '#262626', color: '#fff' },
-    searchButton: { padding: '12px 24px', backgroundColor: '#0095f6', color: '#fff', border: 'none', borderRadius: '8px', fontWeight: 'bold', cursor: 'pointer' },
+    searchInput: { 
+        flex: 1, padding: '14px 18px', borderRadius: '10px', 
+        border: '1px solid #e2e8f0', backgroundColor: '#ffffff', 
+        color: '#1e293b', fontSize: '1em', boxShadow: '0 1px 2px rgba(0,0,0,0.05)'
+    },
+    searchButton: { 
+        padding: '12px 28px', backgroundColor: '#3b82f6', color: '#fff', 
+        border: 'none', borderRadius: '10px', fontWeight: 600, 
+        cursor: 'pointer', transition: 'background 0.2s' 
+    },
     suggestionsBox: { 
         position: 'absolute', top: '100%', left: 0, right: 0, 
-        backgroundColor: '#262626', border: '1px solid #333', borderRadius: '8px', 
-        marginTop: '5px', zIndex: 10, boxShadow: '0 4px 12px rgba(0,0,0,0.5)',
+        backgroundColor: '#ffffff', border: '1px solid #e2e8f0', borderRadius: '10px', 
+        marginTop: '8px', zIndex: 10, boxShadow: '0 10px 15px -3px rgba(0,0,0,0.1)',
         maxHeight: '300px', overflowY: 'auto'
     },
-    suggestionItem: { padding: '10px 15px', borderBottom: '1px solid #333', cursor: 'pointer', transition: 'background 0.2s' },
-    suggestionName: { fontWeight: 'bold', fontSize: '0.9em' },
-    suggestionId: { fontSize: '0.8em', color: '#8e8e8e' },
-    profileContainer: { backgroundColor: '#000', borderRadius: '12px', padding: '40px', border: '1px solid #262626' },
+    suggestionItem: { padding: '12px 18px', borderBottom: '1px solid #f1f5f9', cursor: 'pointer', transition: 'background 0.2s' },
+    suggestionName: { fontWeight: 600, fontSize: '0.95em', color: '#1e293b' },
+    suggestionId: { fontSize: '0.85em', color: '#64748b' },
+    profileContainer: { 
+        backgroundColor: '#ffffff', borderRadius: '16px', padding: '40px', 
+        border: '1px solid #e2e8f0', boxShadow: '0 4px 6px -1px rgba(0,0,0,0.05)' 
+    },
     profileHeader: { display: 'flex', gap: '60px', marginBottom: '40px', alignItems: 'flex-start' },
-    avatarPlaceholder: { width: '150px', height: '150px', borderRadius: '50%', backgroundColor: '#262626', border: '1px solid #333', flexShrink: 0 },
+    avatarImage: { 
+        width: '150px', height: '150px', borderRadius: '50%', 
+        objectFit: 'cover', border: '1px solid #e2e8f0', flexShrink: 0 
+    },
     profileInfo: { flex: 1 },
     usernameRow: { display: 'flex', alignItems: 'center', gap: '20px', marginBottom: '20px' },
-    username: { fontSize: '1.5em', fontWeight: 'normal', margin: 0 },
+    username: { fontSize: '1.75em', fontWeight: 400, color: '#0f172a', margin: 0 },
     statsRow: { display: 'flex', gap: '30px', marginBottom: '20px' },
-    statItem: { fontSize: '1em' },
-    bio: { lineHeight: '1.4' },
-    realName: { fontSize: '1em', fontWeight: 'bold', margin: '0 0 5px 0' },
-    bioText: { margin: 0, color: '#efefef' },
-    bioLink: { color: '#e0f1ff', margin: '5px 0 0 0', fontSize: '0.9em' },
-    section: { marginTop: '40px', borderTop: '1px solid #262626', paddingTop: '20px' },
-    sectionTitle: { fontSize: '1.1em', color: '#8e8e8e', marginBottom: '20px', textTransform: 'uppercase', letterSpacing: '1px' },
+    statItem: { fontSize: '1em', color: '#475569' },
+    bio: { lineHeight: '1.5' },
+    realName: { fontSize: '1.1em', fontWeight: 700, color: '#0f172a', margin: '0 0 5px 0' },
+    bioText: { margin: 0, color: '#475569' },
+    bioLink: { color: '#3b82f6', margin: '5px 0 0 0', fontSize: '0.95em', fontWeight: 500 },
+    section: { marginTop: '40px', borderTop: '1px solid #f1f5f9', paddingTop: '30px' },
+    sectionTitle: { 
+        fontSize: '0.85rem', fontWeight: 600, color: '#94a3b8', 
+        marginBottom: '20px', textTransform: 'uppercase', letterSpacing: '0.05em' 
+    },
     tagContainer: { display: 'flex', flexWrap: 'wrap', gap: '10px' },
-    tag: { padding: '6px 12px', backgroundColor: '#1a1a1a', borderRadius: '20px', fontSize: '0.85em', border: '1px solid #333' },
-    statsGrid: { display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(150px, 1fr))', gap: '15px' },
-    statCard: { padding: '15px', backgroundColor: '#121212', borderRadius: '8px', border: '1px solid #262626', textAlign: 'center' },
-    statLabel: { fontSize: '0.75em', color: '#8e8e8e', marginBottom: '5px', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' },
-    statValue: { fontSize: '1.4em', fontWeight: 'bold', color: '#0095f6' },
-    statSub: { fontSize: '0.7em', color: '#555', marginTop: '5px' },
-    center: { textAlign: 'center', padding: '20px' },
-    error: { color: '#ed4956', textAlign: 'center', marginBottom: '20px' },
-    emptyText: { color: '#8e8e8e', fontStyle: 'italic' }
+    tag: { 
+        padding: '8px 16px', backgroundColor: '#f1f5f9', borderRadius: '8px', 
+        fontSize: '0.9em', border: '1px solid #e2e8f0', color: '#475569', fontWeight: 500 
+    },
+    statsGrid: { display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(160px, 1fr))', gap: '20px' },
+    statCard: { 
+        padding: '20px', backgroundColor: '#ffffff', borderRadius: '12px', 
+        border: '1px solid #e2e8f0', textAlign: 'center', transition: 'transform 0.2s' 
+    },
+    statLabel: { 
+        fontSize: '0.8em', fontWeight: 600, color: '#64748b', 
+        marginBottom: '8px', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' 
+    },
+    statValue: { fontSize: '1.6em', fontWeight: 800, color: '#3b82f6', letterSpacing: '-0.02em' },
+    statSub: { fontSize: '0.8em', color: '#94a3b8', marginTop: '6px', fontWeight: 500 },
+    center: { textAlign: 'center', padding: '40px', color: '#64748b' },
+    error: { 
+        color: '#ef4444', textAlign: 'center', marginBottom: '20px', 
+        padding: '12px', backgroundColor: '#fef2f2', borderRadius: '8px', border: '1px solid #fee2e2' 
+    },
+    emptyText: { color: '#94a3b8', fontStyle: 'italic' }
 };
