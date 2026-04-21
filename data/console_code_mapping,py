@@ -1,0 +1,32 @@
+console_mapping = {"East Control": "EC", "West Control": "WC", "Keppel": "KP, "Cruisebay" : " CB", "VTIS East" : "VE", "VTIS West" : "VW",
+"VTIS Central": "VC", "Sembawang Control" : "SB", "Jurong Control" : "JP", "Pasir Panjang Control" : "PP", "VTIS MTC": "VM", "Proactive": "PA",
+"Pasir Panjang MTC": "PM", "Sembawang MTC": "SM", "PSU": "PS", "Temasek MTC": "TM", "GMDSS": "GD", "STW (PB)": "SPB", "STW (TU)": "STU", 
+"Vista DO/ Sensitive Vessels": "VDO", "Changi DO": "CDO", "Watch IC Console": "W"}
+
+leave_codes = {
+    2     # Primary Leave Types (from models/leaves.ts)
+    3     "Annual leave": "ANN",
+    4     "Medical leave": "SCK",
+    5     "Hospitalisation Leave": "HPL",
+    6     "Parental Leave": "SPL",
+    7     "Advance Leave": "ADL",  # Code follows previous pattern as not in your provided list
+    8     "Block Leave": "BL",     # Code follows previous pattern as not in your provided list
+    9
+   10     # Specific Sub-Leave Types (from ApplyBlockAdvanceLeaveModal.tsx)
+   11     "Annual Leave": "ANN",
+   12     "Birthday Time off": "BDL",
+   13     "Childcare Leave": "CCL",
+   14     "Compassionate Leave": "COM",
+   15     "Earned Public Holiday": "EPH",
+   16     "Family Care Leave": "FCL",
+   17     "Hospitalization Leave": "HPL",
+   18     "Marriage Leave": "MAR",
+   19     "Maternity Leave": "MAT",
+   20     "Medical Leave": "SCK",
+   21     "NMC (No medical certificate)": "NMC",
+   22     "Paternity Leave": "PAT",
+   23     "Shared Parental Leave": "SPL",
+   24     "Pilgrimage Leave": "PIL",
+   25     "Study / Exam Leave": "STY",
+   26     "Reservist leave": "RSL"
+   27 }

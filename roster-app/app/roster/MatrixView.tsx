@@ -4,6 +4,27 @@ import { RosterMap, ShiftData } from './page'; // Assuming these types are expor
 import LeaveDetailsModal from './LeaveDetailsModal';
 import ShiftDetailsModal from './ShiftDetailsModal';
 
+// --- CONSTANTS ---
+const CONSOLE_MAPPING: Record<string, string> = {
+  "East Control": "EC", "West Control": "WC", "Keppel": "KP", "Cruisebay": "CB",
+  "VTIS East": "VE", "VTIS West": "VW", "VTIS Central": "VC", "Sembawang Control": "SB",
+  "Jurong Control": "JP", "Pasir Panjang Control": "PP", "VTIS MTC": "VM", "Proactive": "PA",
+  "Pasir Panjang MTC": "PM", "Sembawang MTC": "SM", "PSU": "PS", "Temasek MTC": "TM",
+  "GMDSS": "GD", "STW (PB)": "SPB", "STW (TU)": "STU",
+  "Vista DO/ Sensitive Vessels": "VDO", "Changi DO": "CDO", "Watch IC Console": "W"
+};
+
+const LEAVE_CODES: Record<string, string> = {
+  "Annual leave": "ANN", "Medical leave": "SCK", "Hospitalisation Leave": "HPL",
+  "Parental Leave": "SPL", "Advance Leave": "ADL", "Block Leave": "BL",
+  "Annual Leave": "ANN", "Birthday Time off": "BDL", "Childcare Leave": "CCL",
+  "Compassionate Leave": "COM", "Earned Public Holiday": "EPH", "Family Care Leave": "FCL",
+  "Hospitalization Leave": "HPL", "Marriage Leave": "MAR", "Maternity Leave": "MAT",
+  "Medical Leave": "SCK", "NMC (No medical certificate)": "NMC", "Paternity Leave": "PAT",
+  "Shared Parental Leave": "SPL", "Pilgrimage Leave": "PIL", "Study / Exam Leave": "STY",
+  "Reservist leave": "RSL"
+};
+
 // --- INTERFACES ---
 interface UserData {
   name: string;
@@ -150,9 +171,15 @@ const MatrixView: React.FC<MatrixViewProps> = React.memo(({ currentDate, rosterD
                       const getUserShift = (assignments: any[], userId: string, label: string) => {
                         const found = assignments.find(w => w.user_id === userId);
                         if (!found) return null;
-                        if (found.assigned_console === 'Reserve') return `R${label}`;
                         if (found.assigned_console === 'OFF') return '0';
-                        return found.is_ojt ? `${label}T` : label;
+                        if (found.assigned_console === 'Reserve') return `R${label}`;
+                        
+                        const consoleCode = found.assigned_console ? CONSOLE_MAPPING[found.assigned_console] : null;
+                        let code = consoleCode ? `${consoleCode}${label}` : label;
+                        if (found.is_ojt) {
+                          code = `O${code}`;
+                        }
+                        return code;
                       };
 
                       // Check all possible assignments
@@ -170,17 +197,23 @@ const MatrixView: React.FC<MatrixViewProps> = React.memo(({ currentDate, rosterD
 
                     let backgroundColor = matrixStyles.td.backgroundColor;
                     const uniqueShifts = [...new Set(shifts)];
+                    const isOjt = uniqueShifts.some(s => s.startsWith('O'));
                     const isReserve = uniqueShifts.some(s => s.startsWith('R'));
-                    const isOjt = uniqueShifts.some(s => s.includes('T'));
-                    const isExplicitOff = uniqueShifts.includes('0');
+                    const isOff = !isOnLeave && (uniqueShifts.length === 0 || (uniqueShifts.length === 1 && uniqueShifts[0] === '0'));
 
                     if (isOnLeave) {
-                      backgroundColor = leaveForUserOnDay?.sub_leave_type ? 'orange' : 'blue';
-                    } else if (isReserve || isOjt) {
-                      backgroundColor = '#B8860B'; // Darker Gold for Reserve and OJT
+                      backgroundColor = 'blue';
+                    } else if (isOjt) {
+                      backgroundColor = '#4b0082'; // Indigo/Purple for OJT
+                    } else if (isReserve) {
+                      backgroundColor = '#B8860B'; // Darker Gold for Reserve
+                    } else if (isOff) {
+                      backgroundColor = '#8B0000'; // Dark Red for Off
                     }
                     
-                    const cellContent = isOnLeave ? 'L' : (uniqueShifts.length > 0 ? uniqueShifts.filter(s => s !== '0' || uniqueShifts.length === 1).join(',') : '0');
+                    const cellContent = isOnLeave 
+                      ? (LEAVE_CODES[leaveForUserOnDay?.sub_leave_type || leaveForUserOnDay?.leave_type || ''] || 'L') 
+                      : (uniqueShifts.length > 0 ? uniqueShifts.filter(s => s !== '0' || uniqueShifts.length === 1).join(',') : '0');
 
                     return (
                       <td
@@ -210,11 +243,11 @@ const MatrixView: React.FC<MatrixViewProps> = React.memo(({ currentDate, rosterD
       <div style={matrixStyles.legend}>
         <h4 style={{ margin: '0 0 10px 0' }}>Legend:</h4>
         <div style={{ display: 'flex', gap: '20px', flexWrap: 'wrap' }}>
-          <div style={matrixStyles.legendItem}><span style={{ ...matrixStyles.legendBox, backgroundColor: '#1e1e1e' }}></span> Normal Shift (1, 2, 3)</div>
-          <div style={matrixStyles.legendItem}><span style={{ ...matrixStyles.legendBox, backgroundColor: '#B8860B' }}></span> Reserve (R1, R2, R3) / OJT (1T, 2T, 3T)</div>
-          <div style={matrixStyles.legendItem}><span style={{ ...matrixStyles.legendBox, backgroundColor: 'blue' }}></span> Leave (L)</div>
-          <div style={matrixStyles.legendItem}><span style={{ ...matrixStyles.legendBox, backgroundColor: 'orange' }}></span> Special Leave (L)</div>
-          <div style={matrixStyles.legendItem}><strong>0</strong>: Off Day</div>
+          <div style={matrixStyles.legendItem}><span style={{ ...matrixStyles.legendBox, backgroundColor: '#1e1e1e' }}></span> Normal Shift (e.g., EC1, WC2 or 1, 2, 3)</div>
+          <div style={matrixStyles.legendItem}><span style={{ ...matrixStyles.legendBox, backgroundColor: '#4b0082' }}></span> OJT Shift (e.g., OEC1, OWC2 or O1, O2, O3)</div>
+          <div style={matrixStyles.legendItem}><span style={{ ...matrixStyles.legendBox, backgroundColor: '#B8860B' }}></span> Reserve (e.g., R1, R2, R3)</div>
+          <div style={matrixStyles.legendItem}><span style={{ ...matrixStyles.legendBox, backgroundColor: 'blue' }}></span> Leave (e.g., ANN, SCK, HPL)</div>
+          <div style={matrixStyles.legendItem}><span style={{ ...matrixStyles.legendBox, backgroundColor: '#8B0000' }}></span> Off Day (0)</div>
         </div>
       </div>
 

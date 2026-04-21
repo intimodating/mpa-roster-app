@@ -229,7 +229,7 @@ export default function DashboardPage() {
           Shows how many staff worked a specific number of night shifts in this period.
         </p>
         <ResponsiveContainer width="100%" height={300}>
-          <BarChart data={nightShiftData} margin={{ top: 20, right: 30, left: 20, bottom: 20 }}>
+          <BarChart data={nightShiftData.filter(item => item.userCount > 0)} margin={{ top: 20, right: 30, left: 20, bottom: 20 }}>
             <CartesianGrid strokeDasharray="3 3" stroke="#444" />
             <XAxis 
               dataKey="nightShifts" 
@@ -276,7 +276,7 @@ export default function DashboardPage() {
         <h2 style={styles.chartTitle}>Workforce Structure by Proficiency Grade</h2>
         <ResponsiveContainer width="100%" height={300}>
           <BarChart
-            data={workforceData}
+            data={workforceData.filter(item => item.count > 0)}
             layout="vertical"
             margin={{ top: 5, right: 30, left: 20, bottom: 5 }}
           >
